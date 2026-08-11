@@ -500,47 +500,187 @@ def get_recommended_campaigns(db: Session = Depends(get_db)):
         }
     ]
 
-@router.get("/expiry/summary", response_model=schemas.ExpirySummaryResponse)
-def get_expiry_summary(db: Session = Depends(get_db)):
-    sql = """
+def format_days_remaining_label(days: int) -> str:
+    if days < 0:
+        abs_days = abs(days)
+        return "Expired yesterday" if abs_days == 1 else f"Expired {abs_days} days ago"
+    elif days == 0:
+        return "Expires today"
+    elif days == 1:
+        return "Tomorrow"
+    else:
+        return f"{days} days left"
+
+@router.get("/expiry/dashboard", response_model=schemas.ExpiryDashboardResponse)
+def get_expiry_dashboard(db: Session = Depends(get_db)):
+    # 1. KPIs
+    sql_kpi = """
     SELECT 
-        COUNT(*) as total_products,
-        SUM(CASE WHEN expiry_status = 'Expiring Soon' THEN 1 ELSE 0 END) as expiring_soon,
-        SUM(CASE WHEN expiry_status = 'Expired' THEN 1 ELSE 0 END) as expired,
-        SUM(CASE WHEN expiry_status = 'Healthy' THEN 1 ELSE 0 END) as healthy,
-        SUM(CASE WHEN expiry_days_remaining BETWEEN 0 AND 7 THEN 1 ELSE 0 END) as expiring_7_days,
-        SUM(CASE WHEN expiry_days_remaining BETWEEN 0 AND 30 THEN 1 ELSE 0 END) as expiring_30_days
+        COUNT(*) as total_tracked,
+        SUM(CASE WHEN expiry_days_remaining BETWEEN 0 AND 30 THEN 1 ELSE 0 END) as expiring_this_month,
+        SUM(CASE WHEN expiry_days_remaining < 0 THEN 1 ELSE 0 END) as already_expired,
+        COALESCE(SUM(CASE WHEN expiry_days_remaining <= 30 THEN stock_value ELSE 0 END), 0) as stock_value_at_risk,
+        COALESCE(SUM(CASE WHEN expiry_days_remaining <= 30 THEN (clearance_price * units_available) ELSE 0 END), 0) as potential_clearance_value
     FROM product_demo_metadata
     """
-    row = db.execute(text(sql)).mappings().fetchone()
+    row = db.execute(text(sql_kpi)).mappings().fetchone()
     
-    # Associated revenue at risk for expiring products
-    sql_rev = """
-    SELECT COALESCE(SUM(c.revenue_at_risk), 0)
-    FROM transactions t
-    JOIN product_demo_metadata p ON t.stock_code = p.stock_code
-    JOIN customers c ON t.customer_id = c.customer_id
-    WHERE p.expiry_status = 'Expiring Soon'
+    kpis = {
+        "products_tracked": int(row["total_tracked"] or 0),
+        "expiring_this_month": int(row["expiring_this_month"] or 0),
+        "already_expired": int(row["already_expired"] or 0),
+        "stock_value_at_risk": round(float(row["stock_value_at_risk"] or 0.0), 2),
+        "potential_clearance_value": round(float(row["potential_clearance_value"] or 0.0), 2)
+    }
+
+    # 2. Line Chart Timeline (Grouped by expiry month/date over upcoming months)
+    sql_timeline = """
+    SELECT 
+        strftime('%Y-%m', synthetic_expiry_date) as month_key,
+        COUNT(*) as products_count,
+        COALESCE(SUM(stock_value), 0) as stock_value,
+        COALESCE(SUM(units_available), 0) as total_units
+    FROM product_demo_metadata
+    WHERE expiry_days_remaining >= -30 AND expiry_days_remaining <= 180
+    GROUP BY month_key
+    ORDER BY month_key ASC
     """
-    assoc_rev = float(db.execute(text(sql_rev)).scalar() or 0.0)
+    timeline_rows = db.execute(text(sql_timeline)).mappings().fetchall()
+    
+    timeline = []
+    for r in timeline_rows:
+        m_key = r["month_key"] or "2026-08"
+        try:
+            dt = datetime.strptime(m_key, "%Y-%m")
+            month_label = dt.strftime("%b %Y")
+        except Exception:
+            month_label = m_key
+            
+        timeline.append({
+            "date": m_key,
+            "month_label": month_label,
+            "products_expiring": int(r["products_count"]),
+            "estimated_stock_value": round(float(r["stock_value"]), 2),
+            "total_units": int(r["total_units"])
+        })
+
+    # 3. Interactive Donut / Pie Chart (Expiry Status Distribution)
+    sql_dist = """
+    SELECT 
+        expiry_status,
+        COUNT(*) as cnt,
+        COALESCE(SUM(units_available), 0) as units,
+        COALESCE(SUM(stock_value), 0) as val
+    FROM product_demo_metadata
+    GROUP BY expiry_status
+    """
+    dist_rows = db.execute(text(sql_dist)).mappings().fetchall()
+    total_prods = sum(r["cnt"] for r in dist_rows) or 1
+    
+    status_order = ["🟢 Healthy", "🟡 Expiring Soon", "🔴 Expired"]
+    status_map = {
+        "Healthy": ("🟢 Healthy", "Healthy (>30d)"),
+        "Expiring Soon": ("🟡 Expiring Soon", "Expiring Soon (1–30d)"),
+        "Expired": ("🔴 Expired", "Expired (<0d)")
+    }
+    
+    status_distribution = []
+    for raw_status, (category, label) in status_map.items():
+        found = next((r for r in dist_rows if r["expiry_status"] == raw_status), None)
+        cnt = int(found["cnt"]) if found else 0
+        units = int(found["units"]) if found else 0
+        val = round(float(found["val"]), 2) if found else 0.0
+        pct = round((cnt / total_prods) * 100, 1)
+        
+        status_distribution.append({
+            "category": category,
+            "status_label": label,
+            "products_count": cnt,
+            "total_units": units,
+            "stock_value": val,
+            "percentage": pct
+        })
+
+    # 4. Stock Value Bar Chart by Expiry Period
+    sql_period = """
+    SELECT 
+        CASE 
+            WHEN expiry_days_remaining < 0 THEN 'Expired'
+            WHEN expiry_days_remaining BETWEEN 0 AND 7 THEN 'Within 7 Days'
+            WHEN expiry_days_remaining BETWEEN 8 AND 30 THEN '8–30 Days'
+            WHEN expiry_days_remaining BETWEEN 31 AND 60 THEN '31–60 Days'
+            ELSE '61+ Days'
+        END as period,
+        COUNT(*) as cnt,
+        COALESCE(SUM(units_available), 0) as units,
+        COALESCE(SUM(stock_value), 0) as val
+    FROM product_demo_metadata
+    GROUP BY period
+    """
+    period_rows = db.execute(text(sql_period)).mappings().fetchall()
+    period_order = ["Expired", "Within 7 Days", "8–30 Days", "31–60 Days", "61+ Days"]
+    
+    value_by_period = []
+    for p in period_order:
+        found = next((r for r in period_rows if r["period"] == p), None)
+        cnt = int(found["cnt"]) if found else 0
+        units = int(found["units"]) if found else 0
+        val = round(float(found["val"]), 2) if found else 0.0
+        
+        value_by_period.append({
+            "period": p,
+            "period_label": p,
+            "products_count": cnt,
+            "total_units": units,
+            "stock_value": val
+        })
 
     return {
-        "total_products": int(row["total_products"] or 0),
-        "expiring_soon": int(row["expiring_soon"] or 0),
-        "expired": int(row["expired"] or 0),
-        "healthy": int(row["healthy"] or 0),
-        "expiring_7_days": int(row["expiring_7_days"] or 0),
-        "expiring_30_days": int(row["expiring_30_days"] or 0),
-        "associated_revenue_at_risk": round(assoc_rev, 2)
+        "kpis": kpis,
+        "timeline": timeline,
+        "status_distribution": status_distribution,
+        "value_by_period": value_by_period
     }
 
 @router.get("/expiry/products", response_model=List[schemas.ExpiryProductItem])
-def get_expiry_products(status: Optional[str] = None, db: Session = Depends(get_db)):
-    where_clause = ""
-    params = {}
+def get_expiry_products(
+    filter_period: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db)
+):
+    where_clauses = []
+    params = {"limit": limit}
+
+    if filter_period:
+        fp = filter_period.lower()
+        if fp == 'week':
+            where_clauses.append("p.expiry_days_remaining BETWEEN 0 AND 7")
+        elif fp == 'month':
+            where_clauses.append("p.expiry_days_remaining BETWEEN 0 AND 30")
+        elif fp == 'next30':
+            where_clauses.append("p.expiry_days_remaining BETWEEN 0 AND 30")
+        elif fp == 'next60':
+            where_clauses.append("p.expiry_days_remaining BETWEEN 0 AND 60")
+        elif fp == 'expired':
+            where_clauses.append("p.expiry_days_remaining < 0")
+
     if status and status.lower() != 'all':
-        where_clause = "WHERE p.expiry_status = :status"
-        params["status"] = status
+        if 'healthy' in status.lower():
+            where_clauses.append("p.expiry_status = 'Healthy'")
+        elif 'soon' in status.lower():
+            where_clauses.append("p.expiry_status = 'Expiring Soon'")
+        elif 'month' in status.lower():
+            where_clauses.append("p.expiry_days_remaining BETWEEN 0 AND 30")
+        elif 'expired' in status.lower():
+            where_clauses.append("p.expiry_status = 'Expired'")
+
+    if search and search.strip():
+        where_clauses.append("(p.stock_code LIKE :search OR p.description LIKE :search)")
+        params["search"] = f"%{search.strip()}%"
+
+    where_str = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
     sql = f"""
     SELECT 
@@ -549,29 +689,230 @@ def get_expiry_products(status: Optional[str] = None, db: Session = Depends(get_
         p.synthetic_expiry_date,
         p.expiry_days_remaining,
         p.expiry_status,
+        p.units_available,
+        p.unit_price,
+        p.stock_value,
+        p.recommended_discount,
+        p.clearance_discount,
+        p.clearance_price,
         COALESCE(SUM(t.quantity), 0) as historical_units_sold,
-        COALESCE(SUM(t.revenue), 0) as historical_revenue,
-        COUNT(DISTINCT t.customer_id) as customers_bought_count
+        COALESCE(SUM(t.revenue), 0) as historical_revenue
     FROM product_demo_metadata p
     LEFT JOIN transactions t ON p.stock_code = t.stock_code AND t.is_cancelled = 0
-    {where_clause}
+    {where_str}
     GROUP BY p.stock_code
     ORDER BY p.expiry_days_remaining ASC
-    LIMIT 100
+    LIMIT :limit
     """
     rows = db.execute(text(sql), params).mappings().fetchall()
-    return [
-        {
+    
+    result = []
+    for r in rows:
+        days = int(r["expiry_days_remaining"])
+        clr_price = float(r["clearance_price"])
+        units = int(r["units_available"])
+        
+        result.append({
             "stock_code": r["stock_code"],
             "description": r["description"] or f"Stock Code #{r['stock_code']}",
             "synthetic_expiry_date": r["synthetic_expiry_date"],
-            "expiry_days_remaining": int(r["expiry_days_remaining"]),
+            "expiry_days_remaining": days,
+            "days_remaining_label": format_days_remaining_label(days),
             "expiry_status": r["expiry_status"],
+            "units_available": units,
+            "unit_price": round(float(r["unit_price"]), 2),
+            "stock_value": round(float(r["stock_value"]), 2),
+            "recommended_discount": float(r["recommended_discount"]),
+            "clearance_discount": float(r["clearance_discount"]),
+            "clearance_price": round(clr_price, 2),
+            "potential_clearance_revenue": round(clr_price * units, 2),
             "historical_units_sold": int(r["historical_units_sold"]),
-            "historical_revenue": round(float(r["historical_revenue"]), 2),
-            "customers_bought_count": int(r["customers_bought_count"])
-        } for r in rows
+            "historical_revenue": round(float(r["historical_revenue"]), 2)
+        })
+    return result
+
+@router.get("/expiry/products/{stock_code}", response_model=schemas.ExpiryProductDetailResponse)
+def get_expiry_product_detail(stock_code: str, db: Session = Depends(get_db)):
+    sql_prod = """
+    SELECT * FROM product_demo_metadata WHERE stock_code = :code
+    """
+    p = db.execute(text(sql_prod), {"code": stock_code}).mappings().fetchone()
+    if not p:
+        raise HTTPException(status_code=404, detail=f"Product with stock_code {stock_code} not found")
+
+    # Historical monthly sales trend from transactions
+    sql_sales = """
+    SELECT 
+        strftime('%Y-%m', invoice_date) as month_key,
+        SUM(quantity) as units_sold,
+        SUM(revenue) as total_rev
+    FROM transactions
+    WHERE stock_code = :code AND is_cancelled = 0
+    GROUP BY month_key
+    ORDER BY month_key ASC
+    """
+    sales_rows = db.execute(text(sql_sales), {"code": stock_code}).mappings().fetchall()
+    
+    monthly_sales = [
+        {
+            "month": r["month_key"],
+            "units_sold": int(r["units_sold"] or 0),
+            "revenue": round(float(r["total_rev"] or 0.0), 2)
+        } for r in sales_rows
     ]
+
+    days = int(p["expiry_days_remaining"])
+    units = int(p["units_available"])
+    clr_price = float(p["clearance_price"])
+
+    return {
+        "stock_code": p["stock_code"],
+        "description": p["description"],
+        "synthetic_expiry_date": p["synthetic_expiry_date"],
+        "expiry_days_remaining": days,
+        "days_remaining_label": format_days_remaining_label(days),
+        "expiry_status": p["expiry_status"],
+        "units_available": units,
+        "unit_price": round(float(p["unit_price"]), 2),
+        "stock_value": round(float(p["stock_value"]), 2),
+        "recommended_discount": float(p["recommended_discount"]),
+        "clearance_discount": float(p["clearance_discount"]),
+        "clearance_price": round(clr_price, 2),
+        "potential_clearance_revenue": round(clr_price * units, 2),
+        "monthly_sales": monthly_sales
+    }
+
+@router.post("/expiry/clearance-price", response_model=schemas.ClearancePriceResponse)
+def update_clearance_price(req: schemas.UpdateClearancePriceRequest, db: Session = Depends(get_db)):
+    if req.clearance_discount < 0 or req.clearance_discount > 100:
+        raise HTTPException(status_code=400, detail="Clearance discount must be between 0% and 100%")
+
+    sql_get = "SELECT * FROM product_demo_metadata WHERE stock_code = :code"
+    p = db.execute(text(sql_get), {"code": req.stock_code}).mappings().fetchone()
+    if not p:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    unit_price = float(p["unit_price"])
+    old_disc = float(p["clearance_discount"])
+    old_clr_price = float(p["clearance_price"])
+    
+    new_disc = float(req.clearance_discount)
+    new_clr_price = round(unit_price * (1.0 - new_disc / 100.0), 2)
+    now_iso = datetime.now().isoformat()
+
+    # Update product_demo_metadata
+    sql_upd = """
+    UPDATE product_demo_metadata
+    SET clearance_discount = :disc, clearance_price = :clr_price, price_updated_at = :updated
+    WHERE stock_code = :code
+    """
+    db.execute(text(sql_upd), {
+        "disc": new_disc,
+        "clr_price": new_clr_price,
+        "updated": now_iso,
+        "code": req.stock_code
+    })
+
+    # Log audit entry
+    sql_audit = """
+    INSERT INTO price_change_audit_log (
+        stock_code, product_name, old_unit_price, old_discount, new_discount,
+        old_clearance_price, new_clearance_price, updated_at, action
+    ) VALUES (:code, :name, :uprice, :old_d, :new_d, :old_cp, :new_cp, :updated, 'SINGLE_UPDATE')
+    """
+    db.execute(text(sql_audit), {
+        "code": req.stock_code,
+        "name": p["description"],
+        "uprice": unit_price,
+        "old_d": old_disc,
+        "new_d": new_disc,
+        "old_cp": old_clr_price,
+        "new_cp": new_clr_price,
+        "updated": now_iso
+    })
+    db.commit()
+
+    return {
+        "success": True,
+        "updated_count": 1,
+        "message": f"Updated clearance price for {p['description']} ({req.stock_code}) to £{new_clr_price:.2f} ({new_disc}% discount)."
+    }
+
+@router.post("/expiry/bulk-clearance-price", response_model=schemas.ClearancePriceResponse)
+def bulk_update_clearance_price(req: schemas.BulkClearancePriceRequest, db: Session = Depends(get_db)):
+    if not req.stock_codes:
+        raise HTTPException(status_code=400, detail="No stock codes provided")
+    if req.clearance_discount < 0 or req.clearance_discount > 100:
+        raise HTTPException(status_code=400, detail="Clearance discount must be between 0% and 100%")
+
+    now_iso = datetime.now().isoformat()
+    updated_count = 0
+
+    for code in req.stock_codes:
+        sql_get = "SELECT * FROM product_demo_metadata WHERE stock_code = :code"
+        p = db.execute(text(sql_get), {"code": code}).mappings().fetchone()
+        if p:
+            unit_price = float(p["unit_price"])
+            old_disc = float(p["clearance_discount"])
+            old_clr_price = float(p["clearance_price"])
+            
+            new_disc = float(req.clearance_discount)
+            new_clr_price = round(unit_price * (1.0 - new_disc / 100.0), 2)
+
+            sql_upd = """
+            UPDATE product_demo_metadata
+            SET clearance_discount = :disc, clearance_price = :clr_price, price_updated_at = :updated
+            WHERE stock_code = :code
+            """
+            db.execute(text(sql_upd), {"disc": new_disc, "clr_price": new_clr_price, "updated": now_iso, "code": code})
+
+            sql_audit = """
+            INSERT INTO price_change_audit_log (
+                stock_code, product_name, old_unit_price, old_discount, new_discount,
+                old_clearance_price, new_clearance_price, updated_at, action
+            ) VALUES (:code, :name, :uprice, :old_d, :new_d, :old_cp, :new_cp, :updated, 'BULK_UPDATE')
+            """
+            db.execute(text(sql_audit), {
+                "code": code,
+                "name": p["description"],
+                "uprice": unit_price,
+                "old_d": old_disc,
+                "new_d": new_disc,
+                "old_cp": old_clr_price,
+                "new_cp": new_clr_price,
+                "updated": now_iso
+            })
+            updated_count += 1
+
+    db.commit()
+    return {
+        "success": True,
+        "updated_count": updated_count,
+        "message": f"Successfully updated clearance discount to {req.clearance_discount}% for {updated_count} products."
+    }
+
+@router.get("/expiry/label-data/{stock_code}")
+def get_label_data(stock_code: str, db: Session = Depends(get_db)):
+    sql_prod = "SELECT * FROM product_demo_metadata WHERE stock_code = :code"
+    p = db.execute(text(sql_prod), {"code": stock_code}).mappings().fetchone()
+    if not p:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    unit_price = float(p["unit_price"])
+    clr_discount = float(p["clearance_discount"])
+    clr_price = float(p["clearance_price"])
+
+    return {
+        "store_name": "AK RETAILS",
+        "title": "CLEARANCE SPECIAL OFFER",
+        "product_name": p["description"],
+        "stock_code": p["stock_code"],
+        "was_price": f"£{unit_price:.2f}",
+        "now_price": f"£{clr_price:.2f}",
+        "savings_percent": f"{clr_discount:.0f}%",
+        "expiry_date": p["synthetic_expiry_date"],
+        "days_remaining_label": format_days_remaining_label(int(p["expiry_days_remaining"]))
+    }
 
 @router.get("/expiry/customers", response_model=List[schemas.ExpiryCustomerItem])
 def get_expiry_customers(stock_code: Optional[str] = None, db: Session = Depends(get_db)):

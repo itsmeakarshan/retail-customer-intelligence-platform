@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, PieChart, TrendingDown, Target, Cpu, Database, Activity, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Users, PieChart, TrendingDown, Target, Cpu, Database, Activity, Sparkles, Package } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: string;
@@ -10,13 +10,14 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, isBackendHealthy, onOpenAssistant }) => {
   const tabs = [
-    { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-    { id: 'risk', label: 'Customers', icon: Users },
-    { id: 'segmentation', label: 'Customer Groups', icon: PieChart },
-    { id: 'revenue', label: 'Revenue Risk', icon: TrendingDown },
-    { id: 'retention', label: 'Retention Campaigns', icon: Target },
-    { id: 'models', label: 'Model Insights', icon: Cpu },
-    { id: 'data', label: 'Data Quality', icon: Database },
+    { id: 'dashboard', label: 'Overview', icon: LayoutDashboard, isAction: false },
+    { id: 'risk', label: 'Customers', icon: Users, isAction: false },
+    { id: 'segmentation', label: 'Customer Groups', icon: PieChart, isAction: false },
+    { id: 'revenue', label: 'Revenue Risk', icon: TrendingDown, isAction: false },
+    { id: 'retention', label: 'Retention Campaigns', icon: Target, isAction: true },
+    { id: 'expiry', label: 'Expiry Products', icon: Package, isAction: true },
+    { id: 'models', label: 'Model Insights', icon: Cpu, isAction: false },
+    { id: 'data', label: 'Data Quality', icon: Database, isAction: false },
   ];
 
   return (
@@ -32,14 +33,38 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, isBacke
       <nav className="nav-tabs" style={{ display: 'flex', gap: '8px', overflowX: 'auto', flex: '1 1 auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', minWidth: '250px' }}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          const isAction = tab.isAction;
+
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', border: 'none', background: activeTab === tab.id ? 'rgba(99, 102, 241, 0.15)' : 'transparent', color: activeTab === tab.id ? 'var(--primary-accent)' : 'var(--text-muted)', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 500, transition: 'all 0.2s' }}
+              className={`tab-btn ${isActive ? 'active' : ''}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: '8px',
+                border: isAction
+                  ? (isActive ? '1px solid #818CF8' : '1px solid rgba(99, 102, 241, 0.4)')
+                  : (isActive ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent'),
+                background: isActive
+                  ? (isAction ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(79, 70, 229, 0.15))' : 'rgba(99, 102, 241, 0.15)')
+                  : (isAction ? 'rgba(99, 102, 241, 0.08)' : 'transparent'),
+                color: isActive
+                  ? '#F8FAFC'
+                  : (isAction ? '#A5B4FC' : 'var(--text-muted)'),
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                fontWeight: isAction ? 700 : 500,
+                fontSize: '0.85rem',
+                boxShadow: isAction && isActive ? '0 0 12px rgba(99, 102, 241, 0.3)' : 'none',
+                transition: 'all 0.2s'
+              }}
             >
-              <Icon size={16} />
+              <Icon size={16} color={isAction ? (isActive ? '#A5B4FC' : '#818CF8') : undefined} />
               <span>{tab.label}</span>
             </button>
           );

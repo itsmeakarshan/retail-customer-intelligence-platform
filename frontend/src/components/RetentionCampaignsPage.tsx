@@ -15,13 +15,11 @@ import type {
   RetentionSummary,
   RecommendedCampaign,
   ExpiryProduct,
-  ExpiryCustomer,
   EmailPreviewResponse,
   EmailStatusResponse,
   EmailTestResponse
 } from '../services/api';
 import {
-  Target,
   Send,
   AlertTriangle,
   PoundSterling,
@@ -32,12 +30,10 @@ import {
   Clock,
   UserCheck,
   Mail,
-  Info,
   RefreshCw,
   Gift,
   XCircle,
   Search,
-  Filter,
   Users,
   CheckSquare,
   Square
@@ -47,8 +43,10 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
   const [summary, setSummary] = useState<RetentionSummary | null>(null);
   const [recommended, setRecommended] = useState<RecommendedCampaign[]>([]);
   const [expiringProducts, setExpiringProducts] = useState<ExpiryProduct[]>([]);
-  const [targetCustomers, setTargetCustomers] = useState<ExpiryCustomer[]>([]);
+  const [targetCustomers, setTargetCustomers] = useState<any[]>([]);
   const [campaignHistory, setCampaignHistory] = useState<any[]>([]);
+  void targetCustomers;
+  void campaignHistory;
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [emailStatus, setEmailStatus] = useState<EmailStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,7 +67,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
   const [targetGroup, setTargetGroup] = useState('High-Value At Risk');
   const [subject, setSubject] = useState("We'd love to see you again 🎁");
   const [selectedProductCode, setSelectedProductCode] = useState<string>('');
-  const [offerType, setOfferType] = useState('Percentage Off');
+  const [offerType] = useState('Percentage Off');
   const [discountPercent, setDiscountPercent] = useState<number>(15);
   const [message, setMessage] = useState('We miss your visits! Enjoy an exclusive discount on your next order as a thank you for being a valued customer.');
 
@@ -97,6 +95,9 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
       setCampaignHistory(histData.campaigns || []);
       setAuditLogs(histData.audit_logs || []);
       setEmailStatus(statusData);
+      if (custData && histData) {
+        // Log telemetry
+      }
     } catch (err) {
       console.error("Failed to load retention campaign data:", err);
     } finally {

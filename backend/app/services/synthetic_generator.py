@@ -7,9 +7,10 @@ This module initializes SEPARATE tables for demonstration workflows:
 2. product_demo_metadata (joined via stock_code)
 3. campaigns (campaign definitions)
 4. campaign_audit_log (delivery audit history)
+5. price_change_audit_log (clearance price audit history)
 
 NO ML features, raw CSVs, or transaction dataset fields are modified.
-Synthetic customer email addresses are strictly for demonstration.
+Synthetic expiry dates and customer email addresses are strictly for demonstration.
 """
 
 import sqlite3
@@ -19,6 +20,20 @@ from datetime import datetime, timedelta
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
 DB_PATH = os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db")
+
+def calculate_recommended_discount(days_remaining: int) -> float:
+    if days_remaining >= 31:
+        return 0.0
+    elif days_remaining >= 15:
+        return 10.0
+    elif days_remaining >= 8:
+        return 20.0
+    elif days_remaining >= 3:
+        return 30.0
+    elif days_remaining >= 1:
+        return 40.0
+    else: # Expired
+        return 50.0
 
 def init_synthetic_tables(db_path: str = DB_PATH):
     """
@@ -32,7 +47,7 @@ def init_synthetic_tables(db_path: str = DB_PATH):
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
-    # 1. Create customer_demo_metadata table (synthetic email only, no phone)
+    # 1. Create customer_demo_metadata table
     c.execute("""
         CREATE TABLE IF NOT EXISTS customer_demo_metadata (
             customer_id TEXT PRIMARY KEY,
@@ -50,6 +65,13 @@ def init_synthetic_tables(db_path: str = DB_PATH):
             synthetic_expiry_date TEXT NOT NULL,
             expiry_days_remaining INTEGER NOT NULL,
             expiry_status TEXT NOT NULL,
+            units_available INTEGER NOT NULL DEFAULT 50,
+            unit_price REAL NOT NULL DEFAULT 10.0,
+            stock_value REAL NOT NULL DEFAULT 500.0,
+            recommended_discount REAL NOT NULL DEFAULT 0.0,
+            clearance_discount REAL NOT NULL DEFAULT 0.0,
+            clearance_price REAL NOT NULL DEFAULT 10.0,
+            price_updated_at TEXT,
             expiry_data_source TEXT DEFAULT 'Synthetic / Demo'
         )
     """)
@@ -88,6 +110,22 @@ def init_synthetic_tables(db_path: str = DB_PATH):
         )
     """)
 
+    # 5. Create price_change_audit_log table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS price_change_audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            stock_code TEXT NOT NULL,
+            product_name TEXT NOT NULL,
+            old_unit_price REAL NOT NULL,
+            old_discount REAL NOT NULL,
+            new_discount REAL NOT NULL,
+            old_clearance_price REAL NOT NULL,
+            new_clearance_price REAL NOT NULL,
+            updated_at TEXT NOT NULL,
+            action TEXT NOT NULL
+        )
+    """)
+
     # Populate customer_demo_metadata if empty
     c.execute("SELECT COUNT(*) FROM customer_demo_metadata")
     if c.fetchone()[0] == 0:
@@ -103,13 +141,18 @@ def init_synthetic_tables(db_path: str = DB_PATH):
             INSERT INTO customer_demo_metadata (customer_id, demo_email, contact_data_source)
             VALUES (?, ?, ?)
         """, demo_rows)
-        print(f"[SyntheticGenerator] Initialized {len(demo_rows)} customer_demo_metadata records with synthetic emails.")
+        print(f"[SyntheticGenerator] Initialized {len(demo_rows)} customer_demo_metadata records.")
 
     # Populate product_demo_metadata if empty
     c.execute("SELECT COUNT(*) FROM product_demo_metadata")
     if c.fetchone()[0] == 0:
         c.execute("""
-            SELECT stock_code, MAX(description), COUNT(DISTINCT invoice) as orders
+            SELECT 
+                stock_code, 
+                MAX(description) as desc, 
+                COUNT(DISTINCT invoice) as orders,
+                COALESCE(AVG(price), 9.99) as avg_price,
+                SUM(quantity) as total_qty
             FROM transactions 
             WHERE is_cancelled=0 AND stock_code IS NOT NULL AND stock_code != ''
             GROUP BY stock_code
@@ -119,11 +162,12 @@ def init_synthetic_tables(db_path: str = DB_PATH):
         
         today = datetime.now().date()
         random.seed(42) # Fixed seed for deterministic demo data
+        now_iso = datetime.now().isoformat()
         
         product_rows = []
-        for idx, (code, desc, orders) in enumerate(products):
+        for idx, (code, desc, orders, avg_price, total_qty) in enumerate(products):
             if idx < 25:
-                days_remaining = random.randint(5, 25) # Expiring Soon
+                days_remaining = random.randint(1, 28) # Expiring This Month
             elif idx < 35:
                 days_remaining = random.randint(-15, -1) # Expired
             else:
@@ -139,13 +183,31 @@ def init_synthetic_tables(db_path: str = DB_PATH):
                 expiry_status = 'Healthy'
                 
             clean_desc = desc if desc else f"Product #{code}"
-            product_rows.append((code, clean_desc, expiry_date, days_remaining, expiry_status, 'Synthetic / Demo'))
+            
+            # Unit price & Stock units calculation
+            unit_price = round(max(float(avg_price), 1.50), 2)
+            # Deterministic inventory stock count between 15 and 220 units
+            units_available = max(15, (orders * 7 + idx * 13) % 200 + 15)
+            stock_value = round(unit_price * units_available, 2)
+            
+            rec_discount = calculate_recommended_discount(days_remaining)
+            clearance_discount = rec_discount
+            clearance_price = round(unit_price * (1.0 - clearance_discount / 100.0), 2)
+            
+            product_rows.append((
+                code, clean_desc, expiry_date, days_remaining, expiry_status,
+                units_available, unit_price, stock_value, rec_discount, clearance_discount,
+                clearance_price, now_iso, 'Synthetic / Demo'
+            ))
 
         c.executemany("""
-            INSERT INTO product_demo_metadata (stock_code, description, synthetic_expiry_date, expiry_days_remaining, expiry_status, expiry_data_source)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO product_demo_metadata (
+                stock_code, description, synthetic_expiry_date, expiry_days_remaining, expiry_status,
+                units_available, unit_price, stock_value, recommended_discount, clearance_discount,
+                clearance_price, price_updated_at, expiry_data_source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, product_rows)
-        print(f"[SyntheticGenerator] Initialized {len(product_rows)} product_demo_metadata records.")
+        print(f"[SyntheticGenerator] Initialized {len(product_rows)} product_demo_metadata records with stock & pricing.")
 
     # Populate default demo campaigns if empty
     c.execute("SELECT COUNT(*) FROM campaigns")
@@ -160,7 +222,6 @@ def init_synthetic_tables(db_path: str = DB_PATH):
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, sample_campaigns)
         
-        # Sample audit log
         sample_logs = [
             (1, now_iso, "VIP High-Value Retention Offer", "High-Value At Risk", 703, "We'd love to see you again 🎁", "We miss you! Enjoy 15% off your next purchase with code VIP15.", "DEMO EMAIL", "akarshanrasyal4@gmail.com", "msg_demo_001", "Accepted by Brevo")
         ]
@@ -168,7 +229,6 @@ def init_synthetic_tables(db_path: str = DB_PATH):
             INSERT INTO campaign_audit_log (campaign_id, created_at, campaign_name, target_group, customer_count, subject, message, delivery_mode, recipient, provider_message_id, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, sample_logs)
-        print("[SyntheticGenerator] Initialized default demo campaigns and email audit logs.")
 
     conn.commit()
     conn.close()

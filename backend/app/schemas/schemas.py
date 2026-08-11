@@ -156,10 +156,82 @@ class ExpiryProductItem(BaseModel):
     description: str
     synthetic_expiry_date: str
     expiry_days_remaining: int
+    days_remaining_label: str
     expiry_status: str
+    units_available: int
+    unit_price: float
+    stock_value: float
+    recommended_discount: float
+    clearance_discount: float
+    clearance_price: float
+    potential_clearance_revenue: float
     historical_units_sold: int
     historical_revenue: float
-    customers_bought_count: int
+
+class ExpiryKPIs(BaseModel):
+    products_tracked: int
+    expiring_this_month: int
+    already_expired: int
+    stock_value_at_risk: float
+    potential_clearance_value: float
+
+class ExpiryTimelinePoint(BaseModel):
+    date: str
+    month_label: str
+    products_expiring: int
+    estimated_stock_value: float
+    total_units: int
+
+class ExpiryStatusDistribution(BaseModel):
+    category: str
+    status_label: str
+    products_count: int
+    total_units: int
+    stock_value: float
+    percentage: float
+
+class ExpiryValueByPeriod(BaseModel):
+    period: str
+    period_label: str
+    products_count: int
+    total_units: int
+    stock_value: float
+
+class ExpiryDashboardResponse(BaseModel):
+    kpis: ExpiryKPIs
+    timeline: List[ExpiryTimelinePoint]
+    status_distribution: List[ExpiryStatusDistribution]
+    value_by_period: List[ExpiryValueByPeriod]
+
+class ExpiryProductDetailResponse(BaseModel):
+    stock_code: str
+    description: str
+    synthetic_expiry_date: str
+    expiry_days_remaining: int
+    days_remaining_label: str
+    expiry_status: str
+    units_available: int
+    unit_price: float
+    stock_value: float
+    recommended_discount: float
+    clearance_discount: float
+    clearance_price: float
+    potential_clearance_revenue: float
+    monthly_sales: List[Dict[str, Any]]
+
+class UpdateClearancePriceRequest(BaseModel):
+    stock_code: str
+    clearance_discount: float
+
+class BulkClearancePriceRequest(BaseModel):
+    stock_codes: List[str]
+    clearance_discount: float
+
+class ClearancePriceResponse(BaseModel):
+    success: bool
+    updated_count: int
+    message: str
+
 
 class ExpiryCustomerItem(BaseModel):
     customer_id: str

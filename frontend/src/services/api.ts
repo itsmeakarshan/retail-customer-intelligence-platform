@@ -236,10 +236,17 @@ export interface ExpiryProduct {
   description: string;
   synthetic_expiry_date: string;
   expiry_days_remaining: number;
+  days_remaining_label: string;
   expiry_status: string;
+  units_available: number;
+  unit_price: number;
+  stock_value: number;
+  recommended_discount: number;
+  clearance_discount: number;
+  clearance_price: number;
+  potential_clearance_revenue: number;
   historical_units_sold: number;
   historical_revenue: number;
-  customers_bought_count: number;
 }
 
 export interface ExpiryCustomer {
@@ -289,6 +296,111 @@ export interface EmailStatusResponse {
   api_key_masked?: string;
   status: string;
   message: string;
+}
+
+export interface ExpiryKPIs {
+  products_tracked: number;
+  expiring_this_month: number;
+  already_expired: number;
+  stock_value_at_risk: number;
+  potential_clearance_value: number;
+}
+
+export interface ExpiryTimelinePoint {
+  date: string;
+  month_label: string;
+  products_expiring: number;
+  estimated_stock_value: number;
+  total_units: number;
+}
+
+export interface ExpiryStatusDistribution {
+  category: string;
+  status_label: string;
+  products_count: number;
+  total_units: number;
+  stock_value: number;
+  percentage: number;
+}
+
+export interface ExpiryValueByPeriod {
+  period: string;
+  period_label: string;
+  products_count: number;
+  total_units: number;
+  stock_value: number;
+}
+
+export interface ExpiryDashboardData {
+  kpis: ExpiryKPIs;
+  timeline: ExpiryTimelinePoint[];
+  status_distribution: ExpiryStatusDistribution[];
+  value_by_period: ExpiryValueByPeriod[];
+}
+
+export interface ExpiryProductDetailData {
+  stock_code: string;
+  description: string;
+  synthetic_expiry_date: string;
+  expiry_days_remaining: number;
+  days_remaining_label: string;
+  expiry_status: string;
+  units_available: number;
+  unit_price: number;
+  stock_value: number;
+  recommended_discount: number;
+  clearance_discount: number;
+  clearance_price: number;
+  potential_clearance_revenue: number;
+  monthly_sales: { month: string; units_sold: number; revenue: number }[];
+}
+
+export async function fetchExpiryDashboard(): Promise<ExpiryDashboardData> {
+  const res = await fetch(`${API_BASE}/expiry/dashboard`);
+  return res.json();
+}
+
+export async function fetchExpiryProductsFiltered(
+  filterPeriod?: string,
+  status?: string,
+  search?: string,
+  limit: number = 100
+): Promise<ExpiryProduct[]> {
+  const params = new URLSearchParams({ limit: limit.toString() });
+  if (filterPeriod && filterPeriod !== 'all') params.append('filter_period', filterPeriod);
+  if (status && status !== 'all') params.append('status', status);
+  if (search && search.trim()) params.append('search', search.trim());
+
+  const res = await fetch(`${API_BASE}/expiry/products?${params.toString()}`);
+  return res.json();
+}
+
+export async function fetchExpiryProductDetail(stockCode: string): Promise<ExpiryProductDetailData> {
+  const res = await fetch(`${API_BASE}/expiry/products/${encodeURIComponent(stockCode)}`);
+  return res.json();
+}
+
+export async function updateClearancePrice(stockCode: string, clearanceDiscount: number) {
+  const res = await fetch(`${API_BASE}/expiry/clearance-price`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ stock_code: stockCode, clearance_discount: clearanceDiscount })
+  });
+  return res.json();
+}
+
+export async function bulkUpdateClearancePrice(stockCodes: string[], clearanceDiscount: number) {
+  const res = await fetch(`${API_BASE}/expiry/bulk-clearance-price`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ stock_codes: stockCodes, clearance_discount: clearanceDiscount })
+  });
+  return res.json();
+}
+
+export async function fetchLabelData(stockCode: string) {
+  const res = await fetch(`${API_BASE}/expiry/label-data/${encodeURIComponent(stockCode)}`);
+  return res.json();
 }
 
 export async function fetchEmailStatus(): Promise<EmailStatusResponse> {

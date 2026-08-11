@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Header } from './components/Header';
 import { ExecutiveDashboard } from './components/ExecutiveDashboard';
 import { CustomerRiskTable } from './components/CustomerRiskTable';
 import { SegmentationPage } from './components/SegmentationPage';
 import { RevenueRiskPage } from './components/RevenueRiskPage';
 import { RetentionCampaignsPage } from './components/RetentionCampaignsPage';
+import { ExpiryProductsPage } from './components/ExpiryProductsPage';
 import { ModelPerformancePage } from './components/ModelPerformancePage';
 import { DataQualityPage } from './components/DataQualityPage';
 import { BusinessAssistantDrawer } from './components/BusinessAssistantDrawer';
@@ -49,6 +50,7 @@ export function App() {
         {activeTab === 'segmentation' && <SegmentationPage />}
         {activeTab === 'revenue' && <RevenueRiskPage />}
         {activeTab === 'retention' && <RetentionCampaignsPage onOpenCopilot={() => setIsAssistantOpen(true)} />}
+        {activeTab === 'expiry' && <ExpiryProductsPage />}
         {activeTab === 'models' && <ModelPerformancePage />}
         {activeTab === 'data' && <DataQualityPage />}
       </main>

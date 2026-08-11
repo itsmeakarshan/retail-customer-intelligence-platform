@@ -9,7 +9,7 @@ export const RevenueRiskPage: React.FC = () => {
   const [riskBreakdown, setRiskBreakdown] = useState<RevenueRiskBreakdown | null>(null);
   const [topAtRiskCustomers, setTopAtRiskCustomers] = useState<CustomerListItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
