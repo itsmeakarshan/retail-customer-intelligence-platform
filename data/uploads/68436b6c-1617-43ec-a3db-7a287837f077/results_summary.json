@@ -1,0 +1,71 @@
+{
+  "session_id": "68436b6c-1617-43ec-a3db-7a287837f077",
+  "status": "complete",
+  "total_rows": 6,
+  "unique_customers": 3,
+  "unique_products": 6,
+  "date_range": "2011-01-05 to 2011-01-06",
+  "quality_score": 100,
+  "high_risk_customers": 2,
+  "medium_risk_customers": 1,
+  "low_risk_customers": 0,
+  "total_expected_30d_revenue": 3705.28,
+  "total_company_may_lose_30d": 2523.81,
+  "loss_percentage_30d": 68.1,
+  "segments_summary": [
+    {
+      "segment_name": "Active Casuals",
+      "customer_count": 3,
+      "avg_recency": 0.3,
+      "total_monetary": 124.32000000000001,
+      "avg_monetary": 41.440000000000005,
+      "expected_30d_revenue": 3705.2799999999997,
+      "company_may_lose_30d": 2523.81,
+      "loss_percentage_30d": 68.1
+    }
+  ],
+  "top_exposure_accounts": [
+    {
+      "customer_id": "14527",
+      "country": "United Kingdom",
+      "recency": 0,
+      "frequency": 0,
+      "monetary": 0.0,
+      "churn_probability": 0.7652,
+      "predicted_future_value": 7596.37,
+      "expected_30d_revenue": 2532.12,
+      "revenue_at_risk": 5812.74,
+      "company_may_lose_30d": 1937.58,
+      "segment_name": "Active Casuals"
+    },
+    {
+      "customer_id": "13047",
+      "country": "United Kingdom",
+      "recency": 0,
+      "frequency": 1,
+      "monetary": 66.68,
+      "churn_probability": 0.4658,
+      "predicted_future_value": 3106.5,
+      "expected_30d_revenue": 1035.5,
+      "revenue_at_risk": 1447.01,
+      "company_may_lose_30d": 482.34,
+      "segment_name": "Active Casuals"
+    },
+    {
+      "customer_id": "17850",
+      "country": "United Kingdom",
+      "recency": 1,
+      "frequency": 1,
+      "monetary": 57.64,
+      "churn_probability": 0.7547,
+      "predicted_future_value": 412.99,
+      "expected_30d_revenue": 137.66,
+      "revenue_at_risk": 311.68,
+      "company_may_lose_30d": 103.89,
+      "segment_name": "Active Casuals"
+    }
+  ],
+  "expiry_available": false,
+  "expiry_message": "Expiry analysis unavailable for this upload because the provided dataset does not contain product expiry dates.",
+  "email_demo_restricted": true
+}

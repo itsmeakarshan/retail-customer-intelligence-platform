@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { fetchCustomerDetail, fetchCustomerExplanation } from '../services/api';
 import type { CustomerDetail, CustomerExplanation } from '../services/api';
-import { X, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { X, AlertTriangle, ShieldCheck, Info } from 'lucide-react';
 
 interface ModalProps {
   customerId: string;
@@ -66,13 +66,25 @@ export const CustomerDetailModal: React.FC<ModalProps> = ({ customerId, onClose 
               </div>
 
               <div style={{ padding: 16, background: 'rgba(255, 255, 255, 0.03)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginBottom: 4 }}>Est. 90-Day Value</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F8FAFC' }}>&pound;{detail.predicted_future_value.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</div>
+                <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span>Expected Spend — Next 30 Days</span>
+                  <span title="Derived from the ML model's 90-day forward prediction using an even daily run-rate assumption (predicted 90-day value ÷ 3)." style={{ cursor: 'help' }}>
+                    <Info size={13} color="#94A3B8" />
+                  </span>
+                </div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F8FAFC' }}>&pound;{detail.expected_30d_revenue.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: 2 }}>Daily run-rate estimate (÷3.0)</div>
               </div>
 
-              <div style={{ padding: 16, background: 'rgba(255, 255, 255, 0.03)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                <div style={{ fontSize: '0.8rem', color: '#FDE047', marginBottom: 4 }}>Potential Revenue at Risk</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#FBBF24' }}>&pound;{detail.revenue_at_risk.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</div>
+              <div style={{ padding: 16, background: 'rgba(255, 255, 255, 0.03)', borderRadius: 12, border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                <div style={{ fontSize: '0.8rem', color: '#FCA5A5', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span>Company May Lose</span>
+                  <span title="Estimated 30-day loss exposure based on churn probability × estimated 30-day spend. Estimated business exposure, not a guaranteed loss." style={{ cursor: 'help' }}>
+                    <Info size={13} color="#FCA5A5" />
+                  </span>
+                </div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#EF4444' }}>&pound;{detail.company_may_lose_30d.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</div>
+                <div style={{ fontSize: '0.72rem', color: '#FCA5A5', marginTop: 2 }}>↓ {detail.loss_percentage_30d.toFixed(1)}% of expected 30-day spend</div>
               </div>
 
               <div style={{ padding: 16, background: 'rgba(255, 255, 255, 0.03)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.05)' }}>

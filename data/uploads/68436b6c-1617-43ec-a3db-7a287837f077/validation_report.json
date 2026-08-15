@@ -1,0 +1,93 @@
+{
+  "session_id": "68436b6c-1617-43ec-a3db-7a287837f077",
+  "is_valid": true,
+  "filename": "sample.csv",
+  "file_size_mb": 0.0,
+  "encoding": "utf-8",
+  "total_rows": 6,
+  "total_columns": 8,
+  "unique_customers": 3,
+  "unique_products": 6,
+  "date_range": "2011-01-05 to 2011-01-06",
+  "estimated_gross_revenue": 96.82,
+  "quality_score": 100,
+  "health_status": "\ud83d\udfe2 Healthy",
+  "null_customers": 0,
+  "null_customers_pct": 0.0,
+  "invalid_dates": 0,
+  "invalid_prices": 0,
+  "cancellation_rows": 1,
+  "duplicate_rows": 0,
+  "preview_rows": [
+    {
+      "Invoice": "536365",
+      "StockCode": "85123A",
+      "Description": "WHITE HANGING HEART T-LIGHT HOLDER",
+      "Quantity": 6,
+      "InvoiceDate": "2011-01-05 08:26:00",
+      "Price": 2.55,
+      "CustomerID": 17850,
+      "Country": "United Kingdom"
+    },
+    {
+      "Invoice": "536365",
+      "StockCode": "71053",
+      "Description": "WHITE METAL LANTERN",
+      "Quantity": 6,
+      "InvoiceDate": "2011-01-05 08:26:00",
+      "Price": 3.39,
+      "CustomerID": 17850,
+      "Country": "United Kingdom"
+    },
+    {
+      "Invoice": "536365",
+      "StockCode": "84406B",
+      "Description": "CREAM CUPID HEARTS COAT HANGER",
+      "Quantity": 8,
+      "InvoiceDate": "2011-01-05 08:26:00",
+      "Price": 2.75,
+      "CustomerID": 17850,
+      "Country": "United Kingdom"
+    },
+    {
+      "Invoice": "536367",
+      "StockCode": "84879",
+      "Description": "ASSORTED COLOUR BIRD ORNAMENT",
+      "Quantity": 32,
+      "InvoiceDate": "2011-01-06 09:15:00",
+      "Price": 1.69,
+      "CustomerID": 13047,
+      "Country": "United Kingdom"
+    },
+    {
+      "Invoice": "536367",
+      "StockCode": "22745",
+      "Description": "POPPY'S PLAYHOUSE BEDROOM",
+      "Quantity": 6,
+      "InvoiceDate": "2011-01-06 09:15:00",
+      "Price": 2.1,
+      "CustomerID": 13047,
+      "Country": "United Kingdom"
+    },
+    {
+      "Invoice": "C536379",
+      "StockCode": "D",
+      "Description": "Discount",
+      "Quantity": -1,
+      "InvoiceDate": "2011-01-06 10:12:00",
+      "Price": 27.5,
+      "CustomerID": 14527,
+      "Country": "United Kingdom"
+    }
+  ],
+  "required_columns_check": {
+    "Invoice": true,
+    "StockCode": true,
+    "Description": true,
+    "Quantity": true,
+    "InvoiceDate": true,
+    "Price": true,
+    "CustomerID": true,
+    "Country": true
+  }
+}

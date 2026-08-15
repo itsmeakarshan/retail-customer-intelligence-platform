@@ -1,0 +1,10 @@
+Metric,Value
+Filename,sample.csv
+Total Rows,6
+Clean Valid Rows,6
+Unique Customers,3
+Unique Products,6
+Data Quality Score,100/100
+Null Customer ID Rows Filtered,0
+Invalid Price/Date Rows Filtered,0
+Model Compatibility Status,Compatible (Feature Matrix Successfully Constructed)

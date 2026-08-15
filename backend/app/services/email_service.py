@@ -205,8 +205,8 @@ class EmailService:
         
         payload = {
             "sender": {
-                "name": "AK RETAILS",
-                "email": "akarshanrasyal04@gmail.com"
+                "name": os.getenv("BREVO_SENDER_NAME", "AK RETAILS").strip() or "AK RETAILS",
+                "email": os.getenv("BREVO_SENDER_EMAIL", "akarshanrasyal04@gmail.com").strip() or "akarshanrasyal04@gmail.com"
             },
             "to": [
                 {

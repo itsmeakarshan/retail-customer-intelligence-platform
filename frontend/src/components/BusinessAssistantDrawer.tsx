@@ -15,6 +15,7 @@ interface AssistantProps {
   onClose: () => void;
   onOpen: () => void;
   onNavigateTab: (tab: string) => void;
+  activeDashboardId?: string;
 }
 
 // Structured response renderer for AI messages to eliminate walls of text
@@ -82,30 +83,19 @@ const FormattedAIResponse: React.FC<{ text: string; onNavigateTab?: (tab: string
         </div>
       )}
 
-      {/* Main structured message content */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Paragraph and Bullet formatting */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {lines.map((line, idx) => {
-          // Headers
-          if (line.startsWith('#') || line.includes('Start Here') || line.includes('Priority')) {
+          if (line.startsWith('#') || line.startsWith('###') || line.startsWith('🎯') || line.startsWith('✨')) {
             return (
-              <h3 key={idx} style={{ fontSize: '1.3rem', fontWeight: 700, color: '#818CF8', marginTop: idx > 0 ? '12px' : '0', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {renderFormattedText(line.replace(/^#+\s*/, ''))}
-              </h3>
-            );
-          }
-
-          // Subheaders / bold titles
-          if (line.startsWith('**') && line.endsWith('**') && line.length < 60) {
-            return (
-              <h4 key={idx} style={{ fontSize: '1.1rem', fontWeight: 700, color: '#F8FAFC', marginTop: '8px', marginBottom: '2px' }}>
-                {line.slice(2, -2)}
+              <h4 key={idx} style={{ color: '#818CF8', fontSize: '1.1rem', fontWeight: 800, margin: '10px 0 4px 0' }}>
+                {renderFormattedText(line.replace(/^[#\s]+/, ''))}
               </h4>
             );
           }
 
-          // Bullet points
-          if (line.startsWith('-') || line.startsWith('*') || line.startsWith('•') || /^\d+\./.test(line)) {
-            const cleanText = line.replace(/^[-*•\d\.]+\s*/, '');
+          if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*')) {
+            const cleanText = line.replace(/^[-•*]\s*/, '');
             return (
               <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', borderLeft: '3px solid rgba(99, 102, 241, 0.5)' }}>
                 <span style={{ fontSize: '1.05rem', color: '#94A3B8' }}>•</span>
@@ -114,7 +104,6 @@ const FormattedAIResponse: React.FC<{ text: string; onNavigateTab?: (tab: string
             );
           }
 
-          // Standard paragraph
           return (
             <p key={idx} style={{ color: '#CBD5E1', margin: 0, fontSize: '1rem', lineHeight: 1.65 }}>
               {renderFormattedText(line)}
@@ -123,7 +112,6 @@ const FormattedAIResponse: React.FC<{ text: string; onNavigateTab?: (tab: string
         })}
       </div>
 
-      {/* Suggested Action Navigation Button */}
       {suggestedTab && onNavigateTab && (
         <div style={{ marginTop: '8px' }}>
           <button
@@ -143,8 +131,6 @@ const FormattedAIResponse: React.FC<{ text: string; onNavigateTab?: (tab: string
               boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)',
               transition: 'transform 0.15s ease'
             }}
-            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
           >
             Open Related Page <ArrowRight size={16} />
           </button>
@@ -154,11 +140,11 @@ const FormattedAIResponse: React.FC<{ text: string; onNavigateTab?: (tab: string
   );
 };
 
-export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onClose, onOpen, onNavigateTab }) => {
+export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onClose, onOpen, onNavigateTab, activeDashboardId = 'default' }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       sender: 'ai',
-      text: `🎯 **Welcome to Business Copilot**\n\nI analyze your live retail data to pinpoint immediate revenue risks and high-priority accounts.\n\n✨ **Ask me anything like:**\n- "Who needs my attention?"\n- "Where is my biggest revenue risk?"\n- "Which customer group should I focus on first?"`,
+      text: `🎯 **Welcome to Business Copilot**\n\nI analyze your live retail data to estimate expected 30-day sales, identify potential revenue losses, and pinpoint priority customer accounts.\n\n✨ **Ask me anything like:**\n- "Who needs my attention?"\n- "How much revenue could I lose in the next 30 days?"\n- "What is my expected 30-day revenue?"`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -205,7 +191,7 @@ export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onCl
     setLoading(true);
 
     try {
-      const response = await fetchChat(textToSend);
+      const response = await fetchChat(textToSend, activeDashboardId);
       const aiMsg: ChatMessage = {
         sender: 'ai',
         text: response.answer,
@@ -230,9 +216,9 @@ export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onCl
 
   const sampleQuestions = [
     "🎯 Who needs my attention?",
-    "💷 Where is my biggest revenue risk?",
+    "💷 How much revenue could I lose in the next 30 days?",
+    "📊 What is my expected 30-day revenue?",
     "👥 Which customer group should I focus on?",
-    "📈 How are my customers performing?",
     "💡 What should I do today?"
   ];
 

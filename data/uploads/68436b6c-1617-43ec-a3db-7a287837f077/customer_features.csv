@@ -1,0 +1,4 @@
+customer_id,recency,frequency,monetary,total_orders,total_items,gross_revenue,average_order_value,average_quantity,unique_products,customer_lifetime_days,days_since_first_purchase,average_days_between_orders,max_days_between_orders,cancellation_count,cancellation_rate,cancelled_revenue,country,recent_spend_90d,historical_spend_prior,spend_trend,order_frequency_trend,recent_order_count_90d,recency_acceleration,spending_momentum,product_diversity_ratio,cancellation_revenue_ratio,purchase_frequency_rate
+13047,0,1,66.68,1,38,66.68,66.68,38.0,2,0,0,0.0,0.0,0,0.0,0.0,United Kingdom,66.68,0.0,66.68,0.5,1,0.0,66.68,0.0513,0.0,1.0
+14527,0,0,0.0,0,0,0.0,0.0,0.0,0,0,0,0.0,0.0,1,1.0,27.5,United Kingdom,0.0,0.0,0.0,0.0,0,0.0,0.0,0.0,27.5,0.0
+17850,1,1,57.64,1,20,57.64,57.64,20.0,3,0,1,0.0,0.0,0,0.0,0.0,United Kingdom,57.64,0.0,57.64,0.5,1,1.0,57.64,0.1429,0.0,1.0

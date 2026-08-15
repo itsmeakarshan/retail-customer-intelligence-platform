@@ -1,0 +1,54 @@
+name: customer-intelligence-platform
+
+networks:
+  retail_net:
+    driver: bridge
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: retail_analysis_backend
+    restart: unless-stopped
+    networks:
+      retail_net:
+        aliases:
+          - backend
+          - retail_analysis_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - BREVO_API_KEY=${BREVO_API_KEY}
+      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL:-akarshanrasyal04@gmail.com}
+      - BREVO_SENDER_NAME=${BREVO_SENDER_NAME:-AK RETAILS}
+      - DEMO_EMAIL_ADDRESS=${DEMO_EMAIL_ADDRESS:-akarshanrasyal4@gmail.com}
+    volumes:
+      # Persistent bind mounts for SQLite database and trained ML models
+      - ./data/processed:/app/data/processed
+      - ./ml/models:/app/ml/models
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: retail_analysis_frontend
+    restart: unless-stopped
+    networks:
+      retail_net:
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy

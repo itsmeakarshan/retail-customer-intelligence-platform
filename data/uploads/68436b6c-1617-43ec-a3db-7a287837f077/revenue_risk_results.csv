@@ -1,0 +1,4 @@
+customer_id,country,recency,frequency,monetary,churn_probability,predicted_future_value,expected_30d_revenue,revenue_at_risk,company_may_lose_30d,segment_name
+14527,United Kingdom,0,0,0.0,0.7652,7596.37,2532.12,5812.74,1937.58,Active Casuals
+13047,United Kingdom,0,1,66.68,0.4658,3106.5,1035.5,1447.01,482.34,Active Casuals
+17850,United Kingdom,1,1,57.64,0.7547,412.99,137.66,311.68,103.89,Active Casuals

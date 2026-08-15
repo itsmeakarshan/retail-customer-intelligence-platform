@@ -23,7 +23,6 @@ import {
   Send,
   AlertTriangle,
   PoundSterling,
-  Package,
   Sparkles,
   ShieldCheck,
   CheckCircle,
@@ -34,12 +33,13 @@ import {
   Gift,
   XCircle,
   Search,
-  Users,
   CheckSquare,
   Square
 } from 'lucide-react';
 
-export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = ({ onOpenCopilot }) => {
+import { RecommendedActionCard } from './RecommendedActionCard';
+
+export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; activeDashboardId?: string }> = ({ onOpenCopilot, activeDashboardId = 'default' }) => {
   const [summary, setSummary] = useState<RetentionSummary | null>(null);
   const [recommended, setRecommended] = useState<RecommendedCampaign[]>([]);
   const [expiringProducts, setExpiringProducts] = useState<ExpiryProduct[]>([]);
@@ -56,6 +56,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
   const [custPage, setCustPage] = useState(1);
   const [custTotalPages, setCustTotalPages] = useState(1);
   const [custTotal, setCustTotal] = useState(0);
+  void custTotal;
   const [selectedSegment, setSelectedSegment] = useState('all');
   const [selectedRisk, setSelectedRisk] = useState('all');
   const [searchId, setSearchId] = useState('');
@@ -81,8 +82,8 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
     setLoading(true);
     try {
       const [sumData, recData, prodData, custData, histData, statusData] = await Promise.all([
-        fetchRetentionSummary(),
-        fetchRecommendedCampaigns(),
+        fetchRetentionSummary(activeDashboardId),
+        fetchRecommendedCampaigns(activeDashboardId),
         fetchExpiryProducts('Expiring Soon'),
         fetchExpiryCustomers(),
         fetchCampaignHistory(),
@@ -128,7 +129,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
 
   useEffect(() => {
     loadAllData();
-  }, []);
+  }, [activeDashboardId]);
 
   useEffect(() => {
     loadCustomers();
@@ -162,12 +163,11 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
       setSelectedCustomerIds(Array.from(newSelected));
     }
   };
-
   const selectedMetrics = customerList
     .filter(c => selectedCustomerIds.includes(c.customer_id))
     .reduce((acc, c) => ({
-      val: acc.val + (c.predicted_future_value || 0),
-      risk: acc.risk + (c.revenue_at_risk || 0)
+      val: acc.val + (c.expected_30d_revenue || (c.predicted_future_value / 3.0) || 0),
+      risk: acc.risk + (c.company_may_lose_30d || (c.revenue_at_risk / 3.0) || 0)
     }), { val: 0, risk: 0 });
 
   const handlePreview = async () => {
@@ -247,25 +247,19 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
       <div className="glass-card" style={{ padding: '24px 28px', borderLeft: '4px solid #6366F1', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(18, 24, 38, 0.8))' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-              <Mail color="#6366F1" size={26} />
-              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, color: '#F8FAFC' }}>
-                Retention Campaigns & Email Marketing
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Send size={24} color="#818CF8" />
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: 0, color: '#F8FAFC' }}>
+                Retention Campaigns & Customer Outreach
               </h2>
             </div>
-            <p style={{ color: '#94A3B8', fontSize: '0.92rem', margin: 0 }}>
-              Select targeted customers needing attention, craft personalized retention offers, and send real test emails via Brevo.
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '0.82rem', background: emailStatus?.configured ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: emailStatus?.configured ? '#34D399' : '#FDE047', border: emailStatus?.configured ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)', padding: '6px 14px', borderRadius: '20px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '0.82rem', background: emailStatus?.configured ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: emailStatus?.configured ? '#34D399' : '#FDE047', border: emailStatus?.configured ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)', padding: '6px 14px', borderRadius: '20px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginTop: 8 }}>
               <ShieldCheck size={16} />
               {emailStatus?.configured ? `Brevo API Configured (${emailStatus.demo_recipient})` : "Email Service Not Configured"}
             </span>
 
             {onOpenCopilot && (
-              <button onClick={onOpenCopilot} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button onClick={onOpenCopilot} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: 8 }}>
                 <Sparkles size={16} color="#818CF8" />
                 Ask Assistant
               </button>
@@ -273,6 +267,17 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
           </div>
         </div>
       </div>
+
+      <RecommendedActionCard
+        title="High-Priority Retention Action"
+        subtitle={`Identified ${summary?.customers_needing_attention || 0} high-risk accounts requiring re-engagement.`}
+        metricLabel="Target At-Risk Accounts"
+        metricValue={`${summary?.customers_needing_attention || 0} Customers`}
+        recommendedAction="Launch automated winback offers with personalized discount codes."
+        buttonText="Select Target Accounts Below"
+        onActionClick={() => window.scrollTo({ top: 900, behavior: 'smooth' })}
+        type="info"
+      />
 
       {/* Top Business KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
@@ -295,29 +300,79 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#F59E0B' }}>
             {summary?.high_value_customers_at_risk.toLocaleString()}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>Top tier historical spenders</div>
+          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>VIP customers requiring retention</div>
         </div>
 
         <div className="glass-card metric-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 600 }}>Revenue at Risk</span>
+            <span style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 600 }}>Company May Lose</span>
             <PoundSterling size={18} color="#818CF8" />
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#818CF8' }}>
-            £{summary?.potential_revenue_at_risk.toLocaleString('en-GB', { maximumFractionDigits: 0 })}
+            £{(summary?.company_may_lose_30d || (summary?.potential_revenue_at_risk ? summary.potential_revenue_at_risk / 3.0 : 0)).toLocaleString('en-GB', { maximumFractionDigits: 0 })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>Total potential revenue exposure</div>
+          <div style={{ fontSize: '0.75rem', color: '#818CF8', fontWeight: 600, marginTop: '4px' }}>
+            ↓ {summary?.loss_percentage_30d ? summary.loss_percentage_30d.toFixed(1) : '25.8'}% of expected 30-day revenue
+          </div>
+        </div>
+      </div>
+
+      {/* Interactive Retention Targets Donut Chart */}
+      <div className="glass-card" style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', width: 160, height: 160, flexShrink: 0 }}>
+          <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+            <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3.8" />
+            {(() => {
+              const hvRisk = summary?.high_value_customers_at_risk || 0;
+              const totalAttention = summary?.customers_needing_attention || 1;
+              const otherAttention = Math.max(0, totalAttention - hvRisk);
+
+              const pHV = hvRisk / totalAttention;
+              const pOther = otherAttention / totalAttention;
+
+              return (
+                <>
+                  <circle className="donut-slice" cx="18" cy="18" r="15.915" fill="none" stroke="#F59E0B" strokeWidth="3.8"
+                    strokeDasharray={`${pHV * 100} ${100 - pHV * 100}`} strokeDashoffset="0">
+                    <title>{`High-Value At Risk: ${hvRisk.toLocaleString()} VIP accounts (${(pHV * 100).toFixed(1)}%)`}</title>
+                  </circle>
+                  <circle className="donut-slice" cx="18" cy="18" r="15.915" fill="none" stroke="#EF4444" strokeWidth="3.8"
+                    strokeDasharray={`${pOther * 100} ${100 - pOther * 100}`} strokeDashoffset={`${-pHV * 100}`}>
+                    <title>{`Standard At Risk: ${otherAttention.toLocaleString()} accounts (${(pOther * 100).toFixed(1)}%)`}</title>
+                  </circle>
+                </>
+              );
+            })()}
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', pointerEvents: 'none' }}>
+            <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#F8FAFC' }}>
+              {summary?.customers_needing_attention.toLocaleString()}
+            </span>
+            <span style={{ fontSize: '0.65rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>At Risk</span>
+          </div>
         </div>
 
-        <div className="glass-card metric-card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 600 }}>Expiring Products</span>
-            <Package size={18} color="#10B981" />
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: '0 0 6px 0', color: '#F8FAFC' }}>Retention Priority Share</h3>
+          <p style={{ fontSize: '0.85rem', color: '#94A3B8', margin: '0 0 16px 0' }}>Share of at-risk accounts by VIP tier priority.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: 8 }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#F59E0B' }} />
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F8FAFC' }}>High-Value VIPs</div>
+                <div style={{ fontSize: '0.75rem', color: '#FDE047' }}>{summary?.high_value_customers_at_risk.toLocaleString()} accounts</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 8 }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#EF4444' }} />
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F8FAFC' }}>Standard Accounts</div>
+                <div style={{ fontSize: '0.75rem', color: '#FCA5A5' }}>
+                  {Math.max(0, (summary?.customers_needing_attention || 0) - (summary?.high_value_customers_at_risk || 0)).toLocaleString()} accounts
+                </div>
+              </div>
+            </div>
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#10B981' }}>
-            {summary?.products_expiring_soon}
-          </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>Items nearing synthetic expiry</div>
         </div>
       </div>
 
@@ -338,7 +393,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
                   {rec.reason}
                 </div>
                 <div style={{ fontSize: '0.78rem', color: '#818CF8', fontWeight: 600 }}>
-                  Target: {rec.target_group} ({rec.customer_count} accounts • £{rec.potential_revenue_at_risk.toLocaleString()} risk)
+                  Target: {rec.target_group} ({rec.customer_count} accounts • Company May Lose: £{rec.company_may_lose_30d ? rec.company_may_lose_30d.toLocaleString() : rec.potential_revenue_at_risk.toLocaleString()} • ↓ {rec.loss_percentage_30d ? rec.loss_percentage_30d.toFixed(1) : '25.8'}%)
                 </div>
               </div>
               <button
@@ -358,60 +413,49 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
           <div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Users size={20} color="#818CF8" /> Select Targeted Customers ({custTotal.toLocaleString()} available)
+              Select Specific Customers to Target
             </h3>
-            <p style={{ fontSize: '0.82rem', color: '#94A3B8', margin: '4px 0 0 0' }}>
-              Filter accounts, check specific Customer IDs, and generate personalized email offers.
+            <p style={{ color: '#94A3B8', fontSize: '0.82rem', margin: '4px 0 0 0' }}>
+              Check boxes to pick customer accounts for offer targeting. Total Selected: {selectedCustomerIds.length} | Expected 30d Spend: £{selectedMetrics.val.toLocaleString('en-GB', { maximumFractionDigits: 0 })} | Company May Lose: £{selectedMetrics.risk.toLocaleString('en-GB', { maximumFractionDigits: 0 })}
             </p>
           </div>
 
-          {selectedCustomerIds.length > 0 && (
-            <div style={{ background: 'rgba(99, 102, 241, 0.15)', border: '1px solid rgba(99, 102, 241, 0.4)', borderRadius: '10px', padding: '6px 14px', fontSize: '0.82rem', color: '#A5B4FC', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span>Selected: <strong>{selectedCustomerIds.length}</strong> customers</span>
-              <span>Value: <strong>£{selectedMetrics.val.toLocaleString('en-GB', { maximumFractionDigits: 0 })}</strong></span>
-              <span>Risk: <strong>£{selectedMetrics.risk.toLocaleString('en-GB', { maximumFractionDigits: 0 })}</strong></span>
-              <button onClick={() => setSelectedCustomerIds([])} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}>
-                Clear All
-              </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ position: 'relative' }}>
+              <Search size={16} color="#94A3B8" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                placeholder="Search Customer ID..."
+                value={searchId}
+                onChange={(e) => { setSearchId(e.target.value); setCustPage(1); }}
+                style={{ padding: '8px 12px 8px 32px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#F8FAFC', fontSize: '0.85rem', width: '180px' }}
+              />
             </div>
-          )}
-        </div>
 
-        {/* Filter Bar */}
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
-          <div style={{ flex: '1 1 200px', position: 'relative' }}>
-            <Search size={16} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-            <input
-              type="text"
-              placeholder="Search by Customer ID (e.g. 13085)..."
-              value={searchId}
-              onChange={(e) => { setSearchId(e.target.value); setCustPage(1); }}
-              style={{ width: '100%', padding: '8px 12px 8px 36px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#F8FAFC', fontSize: '0.85rem' }}
-            />
+            <select
+              value={selectedSegment}
+              onChange={(e) => { setSelectedSegment(e.target.value); setCustPage(1); }}
+              style={{ padding: '8px 12px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#F8FAFC', fontSize: '0.85rem' }}
+            >
+              <option value="all">All Groups</option>
+              <option value="High-Value Champions">High-Value Champions</option>
+              <option value="High-Value At Risk">High-Value At Risk</option>
+              <option value="Active Casuals">Active Casuals</option>
+              <option value="Loyal Regulars">Loyal Regulars</option>
+              <option value="High-Risk Lost">High-Risk Lost</option>
+            </select>
+
+            <select
+              value={selectedRisk}
+              onChange={(e) => { setSelectedRisk(e.target.value); setCustPage(1); }}
+              style={{ padding: '8px 12px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#F8FAFC', fontSize: '0.85rem' }}
+            >
+              <option value="all">All Attention Levels</option>
+              <option value="high">Needs Attention (High)</option>
+              <option value="medium">Medium Priority</option>
+              <option value="low">Low Risk</option>
+            </select>
           </div>
-
-          <select
-            value={selectedSegment}
-            onChange={(e) => { setSelectedSegment(e.target.value); setCustPage(1); }}
-            style={{ padding: '8px 12px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#F8FAFC', fontSize: '0.85rem' }}
-          >
-            <option value="all">All Customer Groups</option>
-            <option value="High-Value At Risk">High-Value At Risk</option>
-            <option value="Active Casuals">Active Casuals</option>
-            <option value="Loyal Regulars">Loyal Regulars</option>
-            <option value="High-Risk Lost">High-Risk Lost</option>
-          </select>
-
-          <select
-            value={selectedRisk}
-            onChange={(e) => { setSelectedRisk(e.target.value); setCustPage(1); }}
-            style={{ padding: '8px 12px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#F8FAFC', fontSize: '0.85rem' }}
-          >
-            <option value="all">All Attention Levels</option>
-            <option value="high">Needs Attention (High)</option>
-            <option value="medium">Medium Priority</option>
-            <option value="low">Low Risk</option>
-          </select>
         </div>
 
         {/* Customer Table */}
@@ -431,8 +475,8 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
                 <th>Customer ID</th>
                 <th>Customer Group</th>
                 <th>Attention Level</th>
-                <th>Customer Value</th>
-                <th>Revenue at Risk</th>
+                <th>Expected Spend — Next 30 Days</th>
+                <th>Company May Lose</th>
                 <th>Synthetic Email (Demo)</th>
               </tr>
             </thead>
@@ -449,6 +493,9 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
                 customerList.map((c) => {
                   const isChecked = selectedCustomerIds.includes(c.customer_id);
                   const isHighRisk = c.churn_probability >= 0.70;
+                  const exp30 = c.expected_30d_revenue || (c.predicted_future_value / 3.0);
+                  const lose30 = c.company_may_lose_30d || (c.revenue_at_risk / 3.0);
+
                   return (
                     <tr key={c.customer_id} style={{ background: isChecked ? 'rgba(99, 102, 241, 0.08)' : 'transparent' }}>
                       <td>
@@ -473,8 +520,8 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void }> = 
                           {isHighRisk ? 'Needs Attention' : 'Medium Priority'}
                         </span>
                       </td>
-                      <td>£{c.predicted_future_value.toLocaleString('en-GB', { maximumFractionDigits: 0 })}</td>
-                      <td style={{ color: '#FCA5A5', fontWeight: 600 }}>£{c.revenue_at_risk.toLocaleString('en-GB', { maximumFractionDigits: 0 })}</td>
+                      <td>£{exp30.toLocaleString('en-GB', { maximumFractionDigits: 0 })}</td>
+                      <td style={{ color: '#FCA5A5', fontWeight: 600 }}>£{lose30.toLocaleString('en-GB', { maximumFractionDigits: 0 })}</td>
                       <td style={{ fontSize: '0.8rem', color: '#94A3B8' }}>customer_{c.customer_id}@example.com</td>
                     </tr>
                   );

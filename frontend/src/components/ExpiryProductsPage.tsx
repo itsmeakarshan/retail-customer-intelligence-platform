@@ -16,7 +16,6 @@ import {
   Package,
   Clock,
   AlertTriangle,
-  PoundSterling,
   Tag,
   Search,
   Printer,
@@ -27,7 +26,9 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-export const ExpiryProductsPage: React.FC = () => {
+import { RecommendedActionCard } from './RecommendedActionCard';
+
+export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNavigateTab?: (tab: string) => void }> = ({ activeDashboardId = 'default' }) => {
   const [dashboard, setDashboard] = useState<ExpiryDashboardData | null>(null);
   const [products, setProducts] = useState<ExpiryProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,10 +59,10 @@ export const ExpiryProductsPage: React.FC = () => {
 
   const loadDashboardData = async () => {
     try {
-      const dbData = await fetchExpiryDashboard();
+      const dbData = await fetchExpiryDashboard(activeDashboardId);
       setDashboard(dbData);
     } catch (err) {
-      console.error("Error loading expiry dashboard:", err);
+      console.error("Failed to load expiry dashboard KPIs:", err);
     }
   };
 
@@ -72,7 +73,8 @@ export const ExpiryProductsPage: React.FC = () => {
         filterPeriod,
         selectedStatus,
         searchQuery,
-        150
+        150,
+        activeDashboardId
       );
       setProducts(prodList);
       
@@ -247,6 +249,20 @@ export const ExpiryProductsPage: React.FC = () => {
         </div>
       </div>
 
+      <RecommendedActionCard
+        title="Expiry & Clearance Optimization"
+        subtitle={kpis && kpis.expiring_this_month > 0 
+          ? `Found ${kpis.expiring_this_month} products expiring within 30 days totaling £${kpis.stock_value_at_risk.toLocaleString()} at-risk stock value.`
+          : `No product expiry information identified in this uploaded dataset. Expiry analysis requires the ExpiryWithinDays column.`
+        }
+        metricLabel="At-Risk Stock Value"
+        metricValue={kpis ? `£${kpis.stock_value_at_risk.toLocaleString()}` : "N/A"}
+        recommendedAction="Apply clearance pricing or targeted flash promotions to reduce potential inventory loss before expiration."
+        buttonText={kpis && kpis.expiring_this_month > 0 ? "Review Clearance Products" : undefined}
+        onActionClick={kpis && kpis.expiring_this_month > 0 ? () => window.scrollTo({ top: 900, behavior: 'smooth' }) : undefined}
+        type={kpis && kpis.expiring_this_month > 0 ? "warning" : "info"}
+      />
+
       {/* Top Business KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' }}>
         <div className="glass-card metric-card" style={{ padding: '20px' }}>
@@ -266,36 +282,25 @@ export const ExpiryProductsPage: React.FC = () => {
             <Clock size={20} color="#F59E0B" />
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 800, color: '#F59E0B' }}>
-            {kpis?.expiring_this_month}
+            {kpis?.expiring_this_month.toLocaleString()}
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '4px' }}>Products needing action</div>
+          <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '4px' }}>Require immediate clearance action</div>
         </div>
 
         <div className="glass-card metric-card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600 }}>🚨 Already Expired</span>
+            <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600 }}>⚠️ Already Expired</span>
             <AlertTriangle size={20} color="#EF4444" />
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 800, color: '#EF4444' }}>
-            {kpis?.already_expired}
+            {kpis?.already_expired.toLocaleString()}
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '4px' }}>Remove from sale immediately</div>
+          <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '4px' }}>Items past expiration date</div>
         </div>
 
         <div className="glass-card metric-card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600 }}>💷 Stock Value at Risk</span>
-            <PoundSterling size={20} color="#EF4444" />
-          </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#F8FAFC' }}>
-            £{kpis?.stock_value_at_risk.toLocaleString('en-GB', { maximumFractionDigits: 0 })}
-          </div>
-          <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '4px' }}>Value of ageing inventory</div>
-        </div>
-
-        <div className="glass-card metric-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600 }}>🏷️ Potential Clearance Value</span>
             <Tag size={20} color="#10B981" />
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 800, color: '#10B981' }}>
@@ -517,8 +522,7 @@ export const ExpiryProductsPage: React.FC = () => {
                 <th>Units Available</th>
                 <th>Unit Price</th>
                 <th>Stock Value</th>
-                <th>Expiry Date</th>
-                <th>Days Remaining</th>
+                <th>Days Until Expiry</th>
                 <th>Expiry Status</th>
                 <th>Recommended Discount</th>
                 <th>Clearance Price</th>
@@ -528,11 +532,11 @@ export const ExpiryProductsPage: React.FC = () => {
             <tbody>
               {loadingProds ? (
                 <tr>
-                  <td colSpan={12} style={{ textAlign: 'center', padding: '30px', color: '#94A3B8' }}>Loading product inventory...</td>
+                  <td colSpan={11} style={{ textAlign: 'center', padding: '30px', color: '#94A3B8' }}>Loading product inventory...</td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={12} style={{ textAlign: 'center', padding: '30px', color: '#94A3B8' }}>No products match the selected filters.</td>
+                  <td colSpan={11} style={{ textAlign: 'center', padding: '30px', color: '#94A3B8' }}>No products match the selected filters.</td>
                 </tr>
               ) : (
                 products.map((p) => {
@@ -563,7 +567,6 @@ export const ExpiryProductsPage: React.FC = () => {
                       <td style={{ fontWeight: 600 }}>{p.units_available} units</td>
                       <td>£{p.unit_price.toFixed(2)}</td>
                       <td style={{ fontWeight: 700 }}>£{p.stock_value.toFixed(2)}</td>
-                      <td style={{ fontSize: '0.85rem', color: '#CBD5E1' }}>{p.synthetic_expiry_date}</td>
                       <td style={{ fontWeight: 600, color: isExpired ? '#EF4444' : p.expiry_days_remaining <= 7 ? '#F59E0B' : '#34D399' }}>
                         {p.days_remaining_label}
                       </td>
@@ -778,8 +781,8 @@ export const ExpiryProductsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '12px' }}>
-                Expiry: {labelData.expiry_date} ({labelData.days_remaining_label})
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#333', marginTop: '12px' }}>
+                Expiry Horizon: {labelData.days_remaining_label}
               </div>
             </div>
 

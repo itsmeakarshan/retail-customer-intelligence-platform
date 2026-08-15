@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { fetchCustomers } from '../services/api';
 import type { PaginatedCustomers } from '../services/api';
-import { Search, Filter, ArrowUpDown, Eye } from 'lucide-react';
+import { Search, Filter, ArrowUpDown, Eye, Info } from 'lucide-react';
 import { CustomerDetailModal } from './CustomerDetailModal';
 
-export const CustomerRiskTable: React.FC = () => {
+interface CustomerRiskTableProps {
+  activeDashboardId?: string;
+}
+
+export const CustomerRiskTable: React.FC<CustomerRiskTableProps> = ({ activeDashboardId = 'default' }) => {
   const [data, setData] = useState<PaginatedCustomers | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -26,7 +30,8 @@ export const CustomerRiskTable: React.FC = () => {
           page,
           limit: 15,
           sort_by: sortBy,
-          order: sortOrder
+          order: sortOrder,
+          dashboard_id: activeDashboardId
         });
         setData(res);
       } catch (err) {
@@ -36,7 +41,7 @@ export const CustomerRiskTable: React.FC = () => {
       }
     }
     loadData();
-  }, [search, riskFilter, segmentFilter, page, sortBy, sortOrder]);
+  }, [search, riskFilter, segmentFilter, page, sortBy, sortOrder, activeDashboardId]);
 
   const handleSort = (column: string) => {
     if (sortBy === column) {
@@ -119,6 +124,7 @@ export const CustomerRiskTable: React.FC = () => {
                 <th onClick={() => handleSort('customer_id')} style={{ cursor: 'pointer' }}>
                   Customer ID <ArrowUpDown size={14} style={{ display: 'inline', marginLeft: 4 }} />
                 </th>
+                <th>Email Address</th>
                 <th>Country</th>
                 <th onClick={() => handleSort('recency')} style={{ cursor: 'pointer' }}>
                   Days Inactive <ArrowUpDown size={14} style={{ display: 'inline', marginLeft: 4 }} />
@@ -130,10 +136,18 @@ export const CustomerRiskTable: React.FC = () => {
                   Likelihood of Stopping <ArrowUpDown size={14} style={{ display: 'inline', marginLeft: 4 }} />
                 </th>
                 <th onClick={() => handleSort('predicted_future_value')} style={{ cursor: 'pointer' }}>
-                  Est. 90d Value <ArrowUpDown size={14} style={{ display: 'inline', marginLeft: 4 }} />
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    Expected Spend — Next 30 Days
+                    <span title="Estimated 30-day customer spend derived from the ML model." style={{ cursor: 'help' }}><Info size={13} color="#94A3B8" /></span>
+                    <ArrowUpDown size={14} style={{ display: 'inline', marginLeft: 2 }} />
+                  </span>
                 </th>
                 <th onClick={() => handleSort('revenue_at_risk')} style={{ cursor: 'pointer' }}>
-                  Revenue at Risk <ArrowUpDown size={14} style={{ display: 'inline', marginLeft: 4 }} />
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    Company May Lose
+                    <span title="Estimated 30-day loss exposure (churn probability × 30-day estimated spend)." style={{ cursor: 'help' }}><Info size={13} color="#FCA5A5" /></span>
+                    <ArrowUpDown size={14} style={{ display: 'inline', marginLeft: 2 }} />
+                  </span>
                 </th>
                 <th>Risk Badge</th>
                 <th>Customer Group</th>
@@ -143,11 +157,11 @@ export const CustomerRiskTable: React.FC = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>Loading customer records...</td>
+                  <td colSpan={11} style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>Loading customer records...</td>
                 </tr>
               ) : !data || data.customers.length === 0 ? (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>No customers matching criteria.</td>
+                  <td colSpan={11} style={{ textAlign: 'center', padding: 40, color: '#94A3B8' }}>No customers matching criteria.</td>
                 </tr>
               ) : (
                 data.customers.map((c) => {
@@ -159,6 +173,7 @@ export const CustomerRiskTable: React.FC = () => {
                   return (
                     <tr key={c.customer_id} onClick={() => setSelectedCustomerId(c.customer_id)} style={{ cursor: 'pointer' }}>
                       <td style={{ fontWeight: 600 }}>#{c.customer_id}</td>
+                      <td style={{ color: '#A5B4FC', fontSize: '0.85rem' }}>{c.email || `customer_${c.customer_id}@example.com`}</td>
                       <td>{c.country}</td>
                       <td>{c.recency}d ago</td>
                       <td>&pound;{c.gross_revenue.toLocaleString()}</td>
@@ -170,8 +185,8 @@ export const CustomerRiskTable: React.FC = () => {
                           <span>{(c.churn_probability * 100).toFixed(0)}% likely</span>
                         </div>
                       </td>
-                      <td>&pound;{c.predicted_future_value.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td>
-                      <td style={{ fontWeight: 700, color: '#FBBF24' }}>&pound;{c.revenue_at_risk.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td>
+                      <td>&pound;{c.expected_30d_revenue.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td>
+                      <td style={{ fontWeight: 700, color: '#FBBF24' }}>&pound;{c.company_may_lose_30d.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td>
                       <td>
                         <span className={`risk-badge ${riskClass}`}>
                           {riskBadgeText}

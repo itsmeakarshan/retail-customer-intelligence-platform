@@ -1,0 +1,31 @@
+stock_code,description,unit_price,recent_30d_demand,expected_30d_demand,lower_30d_estimate,upper_30d_estimate,trend_pct,trend_direction,status,recommended_action,confidence_interval_label,current_stock
+20727,Lunch Bag Black Skull.,1.66,300.0,2139.6,512.6,3814.7,100.0,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),1793.0
+20725,Lunch Bag Red Retrospot,1.63,224.0,2407.7,563.2,4503.1,-3.9,Stable,Healthy,🟢 Stable Demand — Regular stock maintenance recommended,85% Empirical Error Bound (No Future Leakage),1578.0
+22699,Roses Regency Teacup And Saucer,2.95,225.0,217.2,0.0,1043.1,-2.2,Stable,Healthy,🟢 Stable Demand — Regular stock maintenance recommended,85% Empirical Error Bound (No Future Leakage),
+22197,Popcorn Holder,0.86,249.0,2321.8,0.0,31585.7,60.6,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),1409.0
+84077,World War 2 Gliders Asstd Designs,0.29,210.0,5668.6,962.0,12623.6,6.1,Stable,Healthy,🟢 Stable Demand — Regular stock maintenance recommended,85% Empirical Error Bound (No Future Leakage),
+21034,Rex Cash+Carry Jumbo Shopper,0.95,221.0,316.5,0.0,1057.4,74.0,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),
+22961,Jam Making Set Printed,1.45,201.0,1495.7,0.0,8285.7,-4.3,Stable,Healthy,🟢 Stable Demand — Regular stock maintenance recommended,85% Empirical Error Bound (No Future Leakage),1386.0
+22386,Jumbo Bag Pink Polkadot,2.09,238.0,1483.8,0.0,5971.4,54.5,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),
+22411,Jumbo Shopper Vintage Red Paisley,2.09,63.0,749.4,0.0,3281.5,-72.2,Falling,Monitor,🟡 Demand Slowing — Review stock holding and consider promotional discount,85% Empirical Error Bound (No Future Leakage),
+22138,Baking Set 9 Piece Retrospot,4.97,89.0,139.3,1.4,534.4,-58.0,Falling,Monitor,🟡 Demand Slowing — Review stock holding and consider promotional discount,85% Empirical Error Bound (No Future Leakage),1335.0
+22722,Set Of 6 Spice Tins Pantry Design,3.93,290.0,123.0,0.0,1043.6,215.2,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),1289.0
+21931,Jumbo Storage Bag Suki,2.08,219.0,1014.4,0.0,2675.5,56.4,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),
+22698,Pink Regency Teacup And Saucer,2.92,118.0,178.6,0.0,628.8,11.3,Stable,Healthy,🟢 Stable Demand — Regular stock maintenance recommended,85% Empirical Error Bound (No Future Leakage),
+21754,Home Building Block Word,6.07,275.0,249.5,0.0,1128.5,85.8,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),
+22178,Victorian Glass Hanging T-Light,1.24,187.0,983.0,0.0,5279.9,156.2,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),1259.0
+21733,Red Hanging Heart T-Light Holder,2.99,216.0,661.5,32.4,2286.4,-8.5,Stable,Healthy,🟢 Stable Demand — Regular stock maintenance recommended,85% Empirical Error Bound (No Future Leakage),1236.0
+22383,Lunch Bag Suki Design,1.61,207.0,854.8,0.0,2405.3,22.5,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),1245.0
+82482,Wooden Picture Frame White Finish,2.56,103.0,734.4,0.0,2187.8,-39.8,Falling,Monitor,🟡 Demand Slowing — Review stock holding and consider promotional discount,85% Empirical Error Bound (No Future Leakage),
+85123A,White Hanging Heart T-Light Holder,2.55,258.0,3776.9,106.8,10236.2,8.4,Stable,Healthy,🟢 Stable Demand — Regular stock maintenance recommended,85% Empirical Error Bound (No Future Leakage),1213.0
+22720,Set Of 3 Cake Tins Pantry Design,4.96,198.0,114.1,0.0,797.3,25.3,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),
+21212,Pack Of 72 Retrospot Cake Cases,0.56,261.0,3676.8,708.2,6967.1,243.4,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),1174.0
+47566,Party Bunting,5.03,160.0,501.9,0.0,3873.4,19.4,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),
+22960,Jam Making Set With Jars,4.27,261.0,352.7,0.0,1166.1,46.6,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),1172.0
+84879,Assorted Colour Bird Ornament,1.68,165.0,2455.3,0.0,9010.9,-33.7,Falling,Monitor,🟡 Demand Slowing — Review stock holding and consider promotional discount,85% Empirical Error Bound (No Future Leakage),1180.0
+85099B,Jumbo Bag Red Retrospot,2.06,185.0,4476.8,0.0,15934.3,-22.9,Falling,Monitor,🟡 Demand Slowing — Review stock holding and consider promotional discount,85% Empirical Error Bound (No Future Leakage),
+22423,Regency Cakestand 3 Tier,12.97,280.0,1219.1,0.0,3216.7,60.9,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),
+22666,Recipe Box Pantry Design,2.95,213.0,221.9,0.0,1054.6,20.3,Rising,Healthy,🟢 Demand Expanding — Monitor stock velocity and ensure supplier allocation,85% Empirical Error Bound (No Future Leakage),
+22697,Green Regency Teacup And Saucer,2.95,122.0,232.5,0.0,814.4,-12.2,Stable,Healthy,🟢 Stable Demand — Regular stock maintenance recommended,85% Empirical Error Bound (No Future Leakage),
+20728,Lunch Bag Cars Blue,1.66,111.0,984.1,0.0,3412.0,-23.4,Falling,Monitor,🟡 Demand Slowing — Review stock holding and consider promotional discount,85% Empirical Error Bound (No Future Leakage),1090.0
+22086,Paper Chain Kit 50'S Christmas,2.96,115.0,313.7,0.0,5052.2,-36.8,Falling,Monitor,🟡 Demand Slowing — Review stock holding and consider promotional discount,85% Empirical Error Bound (No Future Leakage),

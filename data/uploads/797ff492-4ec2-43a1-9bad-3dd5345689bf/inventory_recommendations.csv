@@ -1,0 +1,31 @@
+stock_code,description,unit_price,expected_30d_demand,lead_time_days,safety_stock,reorder_point,current_stock,suggested_order,status,reason,stock_value_scenario,order_cost_scenario,has_expiry_risk
+20727,Lunch Bag Black Skull.,1.66,2139.6,7,925,1425,1793,0,Healthy,Expiring inventory alert: Halting replenishment to prevent expiry waste (724 units at risk).,2976.38,0.0,True
+20725,Lunch Bag Red Retrospot,1.63,2407.7,7,1157,1719,1578,1987,Replenishment Needed,Current stock (1578) is at or below Reorder Point (1719).,2572.14,3238.81,False
+22699,Roses Regency Teacup And Saucer,2.95,217.2,7,456,507,206,468,Replenishment Needed,Current stock (206) is at or below Reorder Point (507).,607.7,1380.6,False
+22197,Popcorn Holder,0.86,2321.8,7,16149,16691,1409,0,Replenishment Needed,Expiring inventory alert: Halting replenishment to prevent expiry waste (1255 units at risk).,1211.74,0.0,True
+84077,World War 2 Gliders Asstd Designs,0.29,5668.6,7,3838,5161,5385,4122,Healthy,Stock level (5385) covers lead time and 30-day forecast.,1561.65,1195.38,False
+21034,Rex Cash+Carry Jumbo Shopper,0.95,316.5,7,409,483,301,425,Replenishment Needed,Current stock (301) is at or below Reorder Point (483).,285.95,403.75,False
+22961,Jam Making Set Printed,1.45,1495.7,7,3747,4096,1386,3857,Replenishment Needed,Current stock (1386) is at or below Reorder Point (4096).,2009.7,5592.65,False
+22386,Jumbo Bag Pink Polkadot,2.09,1483.8,7,2477,2824,1410,2551,Replenishment Needed,Current stock (1410) is at or below Reorder Point (2824).,2946.9,5331.59,False
+22411,Jumbo Shopper Vintage Red Paisley,2.09,749.4,7,1398,1573,712,1436,Replenishment Needed,Current stock (712) is at or below Reorder Point (1573).,1488.08,3001.24,False
+22138,Baking Set 9 Piece Retrospot,4.97,139.3,7,219,252,1335,0,Excess Stock,Expiring inventory alert: Halting replenishment to prevent expiry waste (918 units at risk).,6634.95,0.0,True
+22722,Set Of 6 Spice Tins Pantry Design,3.93,123.0,7,508,537,1289,0,Excess Stock,Expiring inventory alert: Halting replenishment to prevent expiry waste (1105 units at risk).,5065.77,0.0,True
+21931,Jumbo Storage Bag Suki,2.08,1014.4,7,917,1154,964,968,Replenishment Needed,Current stock (964) is at or below Reorder Point (1154).,2005.12,2013.44,False
+22698,Pink Regency Teacup And Saucer,2.92,178.6,7,249,291,170,258,Replenishment Needed,Current stock (170) is at or below Reorder Point (291).,496.4,753.36,False
+21754,Home Building Block Word,6.07,249.5,7,486,545,237,499,Replenishment Needed,Current stock (237) is at or below Reorder Point (545).,1438.59,3028.93,False
+22178,Victorian Glass Hanging T-Light,1.24,983.0,7,2372,2602,1259,2096,Replenishment Needed,Current stock (1259) is at or below Reorder Point (2602).,1561.16,2599.04,False
+21733,Red Hanging Heart T-Light Holder,2.99,661.5,7,897,1052,1236,323,Healthy,Stock level (1236) covers lead time and 30-day forecast.,3695.64,965.77,False
+22383,Lunch Bag Suki Design,1.61,854.8,7,856,1056,1245,0,Healthy,Expiring inventory alert: Halting replenishment to prevent expiry waste (818 units at risk).,2004.45,0.0,True
+82482,Wooden Picture Frame White Finish,2.56,734.4,7,803,975,698,840,Replenishment Needed,Current stock (698) is at or below Reorder Point (975).,1786.88,2150.4,False
+85123A,White Hanging Heart T-Light Holder,2.55,3776.9,7,3565,4447,1213,6129,Replenishment Needed,Current stock (1213) is at or below Reorder Point (4447).,3093.15,15628.95,False
+22720,Set Of 3 Cake Tins Pantry Design,4.96,114.1,7,377,404,108,384,Replenishment Needed,Current stock (108) is at or below Reorder Point (404).,535.68,1904.64,False
+21212,Pack Of 72 Retrospot Cake Cases,0.56,3676.8,7,1816,2674,1174,4319,Replenishment Needed,Current stock (1174) is at or below Reorder Point (2674).,657.44,2418.64,False
+47566,Party Bunting,5.03,501.9,7,1861,1979,477,1886,Replenishment Needed,Current stock (477) is at or below Reorder Point (1979).,2399.31,9486.58,False
+22960,Jam Making Set With Jars,4.27,352.7,7,449,532,1172,0,Healthy,Expiring inventory alert: Halting replenishment to prevent expiry waste (996 units at risk).,5004.44,0.0,True
+84879,Assorted Colour Bird Ornament,1.68,2455.3,7,3618,4191,1180,4894,Replenishment Needed,Current stock (1180) is at or below Reorder Point (4191).,1982.4,8221.92,False
+85099B,Jumbo Bag Red Retrospot,2.06,4476.8,7,6323,7368,4253,6547,Replenishment Needed,Current stock (4253) is at or below Reorder Point (7368).,8761.18,13486.82,False
+22423,Regency Cakestand 3 Tier,12.97,1219.1,7,1103,1388,1158,1165,Replenishment Needed,Current stock (1158) is at or below Reorder Point (1388).,15019.26,15110.05,False
+22666,Recipe Box Pantry Design,2.95,221.9,7,460,512,211,471,Replenishment Needed,Current stock (211) is at or below Reorder Point (512).,622.45,1389.45,False
+22697,Green Regency Teacup And Saucer,2.95,232.5,7,322,377,221,334,Replenishment Needed,Current stock (221) is at or below Reorder Point (377).,651.95,985.3,False
+20728,Lunch Bag Cars Blue,1.66,984.1,7,1340,1570,1090,0,Replenishment Needed,Expiring inventory alert: Halting replenishment to prevent expiry waste (598 units at risk).,1809.4,0.0,True
+22086,Paper Chain Kit 50'S Christmas,2.96,313.7,7,2615,2689,298,2631,Replenishment Needed,Current stock (298) is at or below Reorder Point (2689).,882.08,7787.76,False

@@ -1,34 +1,79 @@
 import React, { useEffect, useState } from 'react';
-import { fetchSummary, fetchRevenueRisk, fetchCustomers, fetchSegments, fetchMonthlyTrends } from '../services/api';
-import type { ExecutiveSummary, RevenueRiskBreakdown, CustomerListItem, SegmentSummary, MonthlyTrend } from '../services/api';
-import { AlertTriangle, PoundSterling, Users, TrendingDown, Target, ArrowRight, Sparkles, CheckCircle } from 'lucide-react';
+import {
+  fetchSummary,
+  fetchRevenueRisk,
+  fetchCustomers,
+  fetchSegments,
+  fetchMonthlyTrends,
+  fetchDemandSummary,
+  fetchInventorySummary,
+  fetchPricingSummary,
+  fetchMonitoringSummary
+} from '../services/api';
+import type {
+  ExecutiveSummary,
+  RevenueRiskBreakdown,
+  CustomerListItem,
+  SegmentSummary,
+  MonthlyTrend,
+  DemandForecastingSummary,
+  InventorySummary,
+  PricingSummary,
+  MonitoringSummary
+} from '../services/api';
+import {
+  AlertTriangle,
+  PoundSterling,
+  Users,
+  TrendingDown,
+  Target,
+  ArrowRight,
+  Sparkles,
+  CheckCircle,
+  Info,
+  TrendingUp,
+  Boxes,
+  Activity,
+  Percent
+} from 'lucide-react';
 import { CustomerDetailModal } from './CustomerDetailModal';
+import { RecommendedActionCard } from './RecommendedActionCard';
 
 interface DashboardProps {
   onNavigateToRisk: () => void;
   onNavigateTab: (tab: string) => void;
+  activeDashboardId?: string;
 }
 
-export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk, onNavigateTab }) => {
+export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk, onNavigateTab, activeDashboardId = 'default' }) => {
   const [summary, setSummary] = useState<ExecutiveSummary | null>(null);
   const [riskData, setRiskData] = useState<RevenueRiskBreakdown | null>(null);
   const [topCustomers, setTopCustomers] = useState<CustomerListItem[]>([]);
   const [scatterCustomers, setScatterCustomers] = useState<CustomerListItem[]>([]);
   const [segments, setSegments] = useState<SegmentSummary[]>([]);
   const [monthlyTrends, setMonthlyTrends] = useState<MonthlyTrend[]>([]);
+  const [demandSummary, setDemandSummary] = useState<DemandForecastingSummary | null>(null);
+  const [inventorySummary, setInventorySummary] = useState<InventorySummary | null>(null);
+  const [pricingSummary, setPricingSummary] = useState<PricingSummary | null>(null);
+  const [monitoringSummary, setMonitoringSummary] = useState<MonitoringSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
+      setLoading(true);
       try {
-        const [sum, risk, custResp, segResp, scatterResp, trendResp] = await Promise.all([
-          fetchSummary(),
-          fetchRevenueRisk(),
-          fetchCustomers({ page: 1, limit: 10, sort_by: 'revenue_at_risk', order: 'desc' }),
-          fetchSegments(),
-          fetchCustomers({ page: 1, limit: 50, sort_by: 'monetary', order: 'desc' }),
-          fetchMonthlyTrends()
+        const [sum, risk, custResp, segResp, scatterResp, trendResp, demSum, invSum, prSum, monSum] = await Promise.all([
+          fetchSummary(activeDashboardId),
+          fetchRevenueRisk(activeDashboardId),
+          fetchCustomers({ page: 1, limit: 10, sort_by: 'revenue_at_risk', order: 'desc', dashboard_id: activeDashboardId }),
+          fetchSegments(activeDashboardId),
+          fetchCustomers({ page: 1, limit: 50, sort_by: 'monetary', order: 'desc', dashboard_id: activeDashboardId }),
+          fetchMonthlyTrends(activeDashboardId),
+          fetchDemandSummary(activeDashboardId).catch(() => null),
+          fetchInventorySummary(activeDashboardId).catch(() => null),
+          fetchPricingSummary(activeDashboardId).catch(() => null),
+          fetchMonitoringSummary(activeDashboardId).catch(() => null)
         ]);
         setSummary(sum);
         setRiskData(risk);
@@ -36,6 +81,10 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
         setSegments(segResp);
         setScatterCustomers(scatterResp.customers);
         setMonthlyTrends(trendResp);
+        setDemandSummary(demSum);
+        setInventorySummary(invSum);
+        setPricingSummary(prSum);
+        setMonitoringSummary(monSum);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
       } finally {
@@ -43,7 +92,7 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
       }
     }
     loadData();
-  }, []);
+  }, [activeDashboardId]);
 
   if (loading) {
     return <div className="glass-card" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted, #94A3B8)' }}>Loading Executive Dashboard...</div>;
@@ -88,6 +137,18 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
       
+      {/* SECTION 0: Business Recommendation Card */}
+      <RecommendedActionCard
+        title="Portfolio At-Risk Revenue Overview"
+        subtitle={`Targeting ${summary.high_risk_customers.toLocaleString()} high-risk accounts and £${summary.total_company_may_lose_30d.toLocaleString()} at-risk 30-day revenue in this active dashboard.`}
+        metricLabel="Estimated 30d Exposure"
+        metricValue={`£${summary.total_company_may_lose_30d.toLocaleString()}`}
+        recommendedAction="Prioritize retention winback campaigns for high-value accounts with declining recency."
+        buttonText="Review At-Risk Accounts"
+        onActionClick={() => onNavigateTab('risk')}
+        type="danger"
+      />
+      
       {/* SECTION 1: 5 KPI Cards */}
       <div className="grid-5" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px' }}>
         <div className="glass-card kpi-card">
@@ -101,38 +162,48 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
 
         <div className="glass-card kpi-card" style={{ borderColor: 'rgba(239, 68, 68, 0.4)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="kpi-title" style={{ color: 'var(--color-rose, #EF4444)' }}>Customers Needing Attention</span>
+            <span className="kpi-title" style={{ color: 'var(--color-rose, #EF4444)' }}>Customers Who May Stop Buying</span>
             <AlertTriangle size={20} color="var(--color-rose, #EF4444)" />
           </div>
           <div className="kpi-value" style={{ color: 'var(--color-rose, #EF4444)' }}>{summary.high_risk_customers.toLocaleString()}</div>
           <div className="kpi-subtitle">Showing signs they may stop buying</div>
         </div>
 
-        <div className="glass-card kpi-card" style={{ borderColor: 'rgba(245, 158, 11, 0.4)' }}>
+        <div className="glass-card kpi-card" style={{ borderColor: 'rgba(239, 68, 68, 0.4)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="kpi-title" style={{ color: 'var(--color-amber, #F59E0B)' }}>Potential Revenue at Risk</span>
-            <PoundSterling size={20} color="var(--color-amber, #F59E0B)" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="kpi-title" style={{ color: 'var(--color-rose, #EF4444)' }}>Company May Lose — Next 30 Days</span>
+              <span title="Estimated business exposure over 30 days derived from the ML model's 90-day forward prediction using an even daily run-rate assumption (predicted 90-day value ÷ 3). Estimated business exposure, not a guaranteed loss." style={{ cursor: 'help' }}>
+                <Info size={14} color="#FCA5A5" />
+              </span>
+            </div>
+            <PoundSterling size={20} color="var(--color-rose, #EF4444)" />
           </div>
-          <div className="kpi-value" style={{ color: 'var(--color-amber, #F59E0B)' }}>&pound;{summary.total_revenue_at_risk.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</div>
-          <div className="kpi-subtitle">Estimated risk-weighted 90d spend</div>
+          <div className="kpi-value" style={{ color: 'var(--color-rose, #EF4444)' }}>&pound;{summary.total_company_may_lose_30d.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</div>
+          <div className="kpi-subtitle" style={{ color: 'var(--color-rose, #EF4444)', fontWeight: 600 }}>↓ {summary.loss_percentage_30d.toFixed(1)}% of estimated 30-day revenue</div>
         </div>
 
         <div className="glass-card kpi-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="kpi-title">Avg 90-Day Customer Value</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span className="kpi-title">Estimated Revenue — Next 30 Days</span>
+              <span title="Estimated portfolio sales over 30 days derived from the ML model's 90-day forward prediction using an even daily run-rate assumption (predicted 90-day value ÷ 3)." style={{ cursor: 'help' }}>
+                <Info size={14} color="#94A3B8" />
+              </span>
+            </div>
             <Target size={20} color="var(--color-emerald, #10B981)" />
           </div>
-          <div className="kpi-value">&pound;{summary.average_customer_value.toFixed(2)}</div>
-          <div className="kpi-subtitle">Mean historical spend per account</div>
+          <div className="kpi-value" style={{ color: 'var(--color-emerald, #10B981)' }}>&pound;{summary.total_expected_30d_revenue.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</div>
+          <div className="kpi-subtitle">Estimated 30-day sales portfolio (run-rate)</div>
         </div>
 
         <div className="glass-card kpi-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="kpi-title">90-Day Customer Risk</span>
+            <span className="kpi-title">Avg 30-Day Customer Spend</span>
             <TrendingDown size={20} color="#06B6D4" />
           </div>
-          <div className="kpi-value">{(summary.overall_churn_rate * 100).toFixed(1)}%</div>
-          <div className="kpi-subtitle">Overall portfolio risk rate</div>
+          <div className="kpi-value">&pound;{(summary.average_customer_value / 3.0).toFixed(2)}</div>
+          <div className="kpi-subtitle">Mean estimated monthly spend</div>
         </div>
       </div>
 
@@ -145,19 +216,25 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)', marginBottom: '20px' }}>Customers grouped by their likelihood of stopping purchases.</p>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', width: '140px', height: '140px' }}>
+            <div style={{ position: 'relative', width: '150px', height: '150px' }}>
               <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
                 <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3.8" />
-                <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-rose, #EF4444)" strokeWidth="3.8"
-                  strokeDasharray={`${highPct * 100} ${100 - highPct * 100}`} strokeDashoffset="0" />
-                <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-amber, #F59E0B)" strokeWidth="3.8"
-                  strokeDasharray={`${medPct * 100} ${100 - medPct * 100}`} strokeDashoffset={`${-highPct * 100}`} />
-                <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-emerald, #10B981)" strokeWidth="3.8"
-                  strokeDasharray={`${lowPct * 100} ${100 - lowPct * 100}`} strokeDashoffset={`${-(highPct + medPct) * 100}`} />
+                <circle className="donut-slice" cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-rose, #EF4444)" strokeWidth="3.8"
+                  strokeDasharray={`${highPct * 100} ${100 - highPct * 100}`} strokeDashoffset="0">
+                  <title>{`High Risk: ${highRiskVal.toLocaleString()} (${(highPct * 100).toFixed(1)}%)`}</title>
+                </circle>
+                <circle className="donut-slice" cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-amber, #F59E0B)" strokeWidth="3.8"
+                  strokeDasharray={`${medPct * 100} ${100 - medPct * 100}`} strokeDashoffset={`${-highPct * 100}`}>
+                  <title>{`Needs Attention: ${medRiskVal.toLocaleString()} (${(medPct * 100).toFixed(1)}%)`}</title>
+                </circle>
+                <circle className="donut-slice" cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-emerald, #10B981)" strokeWidth="3.8"
+                  strokeDasharray={`${lowPct * 100} ${100 - lowPct * 100}`} strokeDashoffset={`${-(highPct + medPct) * 100}`}>
+                  <title>{`Low Risk: ${lowRiskVal.toLocaleString()} (${(lowPct * 100).toFixed(1)}%)`}</title>
+                </circle>
               </svg>
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-                <span style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main, #F8FAFC)' }}>{totalCust.toLocaleString()}</span>
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted, #94A3B8)' }}>Total</span>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', pointerEvents: 'none' }}>
+                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #F8FAFC)' }}>{totalCust.toLocaleString()}</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Accounts</span>
               </div>
             </div>
 
@@ -218,18 +295,21 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
         {/* Left: Revenue at Risk by Group */}
         <div className="glass-card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '4px' }}>Where Is My Money Most At Risk?</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)', marginBottom: '20px' }}>Potential revenue exposure broken down by customer group.</p>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '4px' }}>Company May Lose by Customer Group</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)', marginBottom: '20px' }}>Estimated 30-day revenue loss broken down by customer group.</p>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {riskData?.by_segment.sort((a,b) => b.revenue_at_risk - a.revenue_at_risk).map((seg) => {
-              const maxRev = riskData.by_segment.length > 0 ? Math.max(...riskData.by_segment.map(s => s.revenue_at_risk)) : 1;
-              const pct = (seg.revenue_at_risk / maxRev) * 100;
+            {riskData?.by_segment.sort((a,b) => b.company_may_lose_30d - a.company_may_lose_30d).map((seg) => {
+              const maxRev = riskData.by_segment.length > 0 ? Math.max(...riskData.by_segment.map(s => s.company_may_lose_30d)) : 1;
+              const pct = (seg.company_may_lose_30d / maxRev) * 100;
               return (
                 <div key={seg.segment_name} onClick={() => onNavigateTab('revenue')} style={{ cursor: 'pointer' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
                     <span style={{ fontWeight: 500, color: 'var(--text-main, #F8FAFC)' }}>{seg.segment_name}</span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-rose, #EF4444)' }}>&pound;{seg.revenue_at_risk.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--color-rose, #EF4444)' }}>
+                      &pound;{seg.company_may_lose_30d.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                      <span style={{ fontSize: '0.75rem', color: '#94A3B8', marginLeft: 6, fontWeight: 400 }}>(↓ {seg.loss_percentage_30d}%)</span>
+                    </span>
                   </div>
                   <div style={{ height: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
                     <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #F59E0B, #EF4444)', borderRadius: '4px' }} />
@@ -347,7 +427,7 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
           <div style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '10px', borderLeft: '4px solid var(--color-rose, #EF4444)' }}>
             <h4 style={{ fontSize: '0.9rem', color: '#FCA5A5', fontWeight: 600, marginBottom: '4px' }}>High-Risk Concentration</h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)' }}>
-              {summary.high_risk_customers.toLocaleString()} customers show high risk, exposing &pound;{summary.total_revenue_at_risk.toLocaleString()} in potential revenue.
+              {summary.high_risk_customers.toLocaleString()} customers show high risk, exposing &pound;{summary.total_company_may_lose_30d.toLocaleString()} in expected 30-day revenue (↓ {summary.loss_percentage_30d.toFixed(1)}%).
             </p>
           </div>
 
@@ -372,7 +452,7 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Customers Worth Looking At</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)' }}>Ranked by highest potential revenue at risk.</p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)' }}>Ranked by highest potential 30-day revenue loss.</p>
           </div>
           <button
             onClick={onNavigateToRisk}
@@ -402,8 +482,8 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
                 <th style={{ textAlign: 'left', padding: '12px' }}>Customer Group</th>
                 <th style={{ textAlign: 'left', padding: '12px' }}>Risk Level</th>
                 <th style={{ textAlign: 'left', padding: '12px' }}>Likelihood of Stopping</th>
-                <th style={{ textAlign: 'left', padding: '12px' }}>Est. 90d Value</th>
-                <th style={{ textAlign: 'left', padding: '12px' }}>Potential Revenue at Risk</th>
+                <th style={{ textAlign: 'left', padding: '12px' }}>Expected Spend — Next 30 Days</th>
+                <th style={{ textAlign: 'left', padding: '12px' }}>Company May Lose</th>
               </tr>
             </thead>
             <tbody>
@@ -421,9 +501,9 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
                     </span>
                   </td>
                   <td style={{ padding: '12px', fontWeight: 600 }}>{(c.churn_probability * 100).toFixed(1)}%</td>
-                  <td style={{ padding: '12px' }}>&pound;{c.predicted_future_value.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td>
+                  <td style={{ padding: '12px' }}>&pound;{c.expected_30d_revenue.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td>
                   <td style={{ padding: '12px', fontWeight: 700, color: 'var(--color-rose, #EF4444)' }}>
-                    &pound;{c.revenue_at_risk.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                    &pound;{c.company_may_lose_30d.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
               ))}
@@ -451,7 +531,184 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
         </div>
       </div>
 
-      {/* SECTION 8: 🎯 Recommended Actions (Bridge Analytics to Retention Campaigns) */}
+      {/* SECTION 8: 🚀 Multi-Discipline AI Retail Intelligence & Optimisation */}
+      <div className="glass-card" style={{ padding: '24px', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+          <div>
+            <span style={{ fontSize: '0.75rem', color: '#818CF8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Multi-Discipline Intelligence
+            </span>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '4px 0 0 0', color: '#F8FAFC' }}>
+              Product, Forecasting, Inventory &amp; Pricing Suite
+            </h3>
+          </div>
+          <span style={{ fontSize: '0.78rem', background: 'rgba(99, 102, 241, 0.15)', color: '#818CF8', padding: '4px 10px', borderRadius: '12px', fontWeight: 600 }}>
+            Unified Platform Overview
+          </span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+          {/* Demand Forecasting Widget */}
+          <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.25)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '14px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <TrendingUp size={18} color="#818CF8" />
+                  <strong style={{ color: '#F8FAFC', fontSize: '0.95rem' }}>Demand Forecasting</strong>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 600 }}>Next 30 Days</span>
+              </div>
+              <div style={{ fontSize: '1.45rem', fontWeight: 800, marginTop: '8px', color: '#38BDF8' }}>
+                {Math.round(demandSummary?.total_expected_30d_units || 0).toLocaleString()} units
+              </div>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted, #94A3B8)' }}>
+                {demandSummary?.products_rising_demand || 0} products accelerating in demand; {demandSummary?.products_falling_demand || 0} slowing down.
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigateTab('forecasting')}
+              style={{
+                padding: '8px 14px',
+                background: 'rgba(99, 102, 241, 0.15)',
+                color: '#A5B4FC',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                width: 'fit-content'
+              }}
+            >
+              Explore Demand Forecasting <ArrowRight size={14} />
+            </button>
+          </div>
+
+          {/* Inventory Optimisation Widget */}
+          <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.25)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '14px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Boxes size={18} color="#10B981" />
+                  <strong style={{ color: '#F8FAFC', fontSize: '0.95rem' }}>Inventory Optimisation</strong>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#F43F5E', fontWeight: 600 }}>
+                  {inventorySummary?.replenishment_needed_count || 0} Need Orders
+                </span>
+              </div>
+              <div style={{ fontSize: '1.45rem', fontWeight: 800, marginTop: '8px', color: '#10B981' }}>
+                {(inventorySummary?.total_suggested_order_units || 0).toLocaleString()} suggested units
+              </div>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted, #94A3B8)' }}>
+                Targeting {(inventorySummary?.default_service_level ? inventorySummary.default_service_level * 100 : 95)}% service level with lead-time uncertainty buffers.
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigateTab('inventory')}
+              style={{
+                padding: '8px 14px',
+                background: 'rgba(16, 185, 129, 0.15)',
+                color: '#6EE7B7',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                width: 'fit-content'
+              }}
+            >
+              Open Inventory Simulator <ArrowRight size={14} />
+            </button>
+          </div>
+
+          {/* Price Analytics Widget */}
+          <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '12px', border: '1px solid rgba(234, 179, 8, 0.25)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '14px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Percent size={18} color="#EAB308" />
+                  <strong style={{ color: '#F8FAFC', fontSize: '0.95rem' }}>Price Analytics &amp; Elasticity</strong>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#FDE047', fontWeight: 600 }}>
+                  {pricingSummary?.elastic_products_count || 0} Price-Sensitive
+                </span>
+              </div>
+              <div style={{ fontSize: '1.45rem', fontWeight: 800, marginTop: '8px', color: '#EAB308' }}>
+                β = {pricingSummary?.avg_elasticity_elastic_items || -1.85}
+              </div>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted, #94A3B8)' }}>
+                {pricingSummary?.inelastic_products_count || 0} inelastic products indicate pricing power for margin expansion.
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigateTab('pricing')}
+              style={{
+                padding: '8px 14px',
+                background: 'rgba(234, 179, 8, 0.15)',
+                color: '#FDE047',
+                border: '1px solid rgba(234, 179, 8, 0.3)',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                width: 'fit-content'
+              }}
+            >
+              Price Scenario Simulator <ArrowRight size={14} />
+            </button>
+          </div>
+
+          {/* Model & Data Monitoring Widget */}
+          <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.25)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '14px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Activity size={18} color="#EF4444" />
+                  <strong style={{ color: '#F8FAFC', fontSize: '0.95rem' }}>Drift &amp; Health Monitoring</strong>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: monitoringSummary?.overall_system_health === 'Healthy' ? '#10B981' : '#F59E0B', fontWeight: 600 }}>
+                  {monitoringSummary?.overall_system_health === 'Healthy' ? '🟢 Stable' : '🟡 Review Drift'}
+                </span>
+              </div>
+              <div style={{ fontSize: '1.45rem', fontWeight: 800, marginTop: '8px', color: '#F8FAFC' }}>
+                {monitoringSummary?.total_features_monitored || 7} Features Tracked
+              </div>
+              <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted, #94A3B8)' }}>
+                {monitoringSummary?.total_alerts_count || 0} demand velocity shift alerts detected in recent transaction periods.
+              </p>
+            </div>
+            <button
+              onClick={() => onNavigateTab('monitoring')}
+              style={{
+                padding: '8px 14px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                color: '#FCA5A5',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                width: 'fit-content'
+              }}
+            >
+              View Monitoring Center <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* SECTION 9: 🎯 Recommended Actions (Bridge Analytics to Retention Campaigns) */}
       <div className="glass-card" style={{ padding: '24px', borderLeft: '4px solid #6366F1', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(18, 24, 38, 0.8))' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

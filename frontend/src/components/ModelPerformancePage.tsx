@@ -218,7 +218,7 @@ export const ModelPerformancePage: React.FC = () => {
         </div>
         <ul style={{ color: 'var(--text-muted)', fontSize: '0.95rem', paddingLeft: 24, display: 'flex', flexDirection: 'column', gap: 10, lineHeight: 1.5 }}>
           <li><strong>Statistical Estimate Only:</strong> Model predictions reflect historical transaction likelihoods and are not guaranteed sales forecasts.</li>
-          <li><strong>90-Day Prediction Scope:</strong> Values represent estimated forward 90-day spend, not lifetime customer value (LTV).</li>
+          <li><strong>30-Day Operational Horizon:</strong> Underlying regression models predict forward 90-day spend (Y_90d), which is operationalised across the platform as a 30-day expected run-rate (Y_90d / 3.0) to align with monthly shopkeeper planning.</li>
           <li><strong>Wholesale Sensitivity:</strong> Top 1% of high-volume wholesale buyers contribute ~38% of total revenue; large individual orders can influence aggregate portfolio figures.</li>
           <li><strong>Domain Specificity:</strong> Trained specifically on UK/international non-subscription B2B/B2C retail transactions (2009-2011).</li>
         </ul>
