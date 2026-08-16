@@ -89,22 +89,134 @@ def test_pricing_summary_endpoint():
     assert "total_products_analysed" in data
     assert "elastic_products_count" in data
     assert "inelastic_products_count" in data
+    assert data["total_products_analysed"] > 0
 
 
-def test_pricing_simulate_endpoint():
-    """Tests POST /api/pricing/simulate."""
-    payload = {
+def test_pricing_products_endpoint():
+    """Tests GET /api/pricing/products returns full population with search and filters, without artificial limits."""
+    # 1. Complete catalog list without limit
+    resp = client.get("/api/pricing/products?dashboard_id=default")
+    assert resp.status_code == 200
+    prods = resp.json()
+    assert len(prods) == 4631  # Complete product population
+    
+    # 2. Check first and end-of-population products
+    first = prods[0]
+    last = prods[-1]
+    assert "stock_code" in first
+    assert "avg_price" in first
+    assert first["data_provenance"] == "Real historical transactions"
+    assert "stock_code" in last
+
+    # 3. Search by StockCode for product far beyond index 150 (near the end of catalog)
+    resp_search_code = client.get("/api/pricing/products?dashboard_id=default&search=35999")
+    assert resp_search_code.status_code == 200
+    code_results = resp_search_code.json()
+    assert len(code_results) >= 1
+    assert any(p["stock_code"] == "35999" for p in code_results)
+    p_end = next(p for p in code_results if p["stock_code"] == "35999")
+    assert p_end["description"] == "S/6 Scandinavian Heart T-Light"
+
+    # 4. Search by Description across full catalog
+    resp_search_desc = client.get("/api/pricing/products?dashboard_id=default&search=SCANDINAVIAN")
+    assert resp_search_desc.status_code == 200
+    desc_results = resp_search_desc.json()
+    assert len(desc_results) > 0
+    assert any("SCANDINAVIAN" in p["description"].upper() for p in desc_results)
+
+    # 5. Verify optimiser and simulator run successfully on this non-top-150 item
+    resp_opt_end = client.post("/api/pricing/optimize?dashboard_id=default", json={
+        "stock_code": "35999",
+        "objective": "revenue"
+    })
+    assert resp_opt_end.status_code == 200
+    opt_end_data = resp_opt_end.json()
+    assert opt_end_data["stock_code"] == "35999"
+    assert opt_end_data["historical_avg_price"] == 2.55
+
+
+def test_pricing_simulate_endpoint_with_and_without_unit_cost():
+    """Tests POST /api/pricing/simulate with optional unit cost and verifies no fabrication."""
+    # Scenario without unit cost
+    payload_no_cost = {
+        "stock_code": "85123A",
+        "price_change_pct": -10.0,
+        "scenario_unit_cost": None
+    }
+    resp1 = client.post("/api/pricing/simulate?dashboard_id=default", json=payload_no_cost)
+    assert resp1.status_code == 200
+    data1 = resp1.json()
+    assert data1["stock_code"] == "85123A"
+    assert "new_price" in data1
+    assert "expected_quantity" in data1
+    assert "revenue_difference" in data1
+    assert data1["scenario_unit_cost"] is None
+    assert data1["scenario_profit"] is None
+    assert data1["profit_difference"] is None
+
+    # Scenario with explicit user unit cost assumption
+    payload_with_cost = {
         "stock_code": "85123A",
         "price_change_pct": -10.0,
         "scenario_unit_cost": 1.50
     }
-    response = client.post("/api/pricing/simulate?dashboard_id=default", json=payload)
-    assert response.status_code == 200
-    data = response.json()
-    assert data["stock_code"] == "85123A"
-    assert "new_price" in data
-    assert "expected_quantity" in data
-    assert "revenue_difference" in data
+    resp2 = client.post("/api/pricing/simulate?dashboard_id=default", json=payload_with_cost)
+    assert resp2.status_code == 200
+    data2 = resp2.json()
+    assert data2["scenario_unit_cost"] == 1.50
+    assert data2["scenario_profit"] is not None
+    assert data2["baseline_profit"] is not None
+    assert data2["profit_difference"] is not None
+    assert round(data2["scenario_profit"] - data2["baseline_profit"], 2) == data2["profit_difference"]
+
+
+def test_pricing_optimize_endpoint():
+    """Tests POST /api/pricing/optimize for profit and revenue objectives."""
+    # 1. Profit objective with unit cost
+    payload_profit = {
+        "stock_code": "85123A",
+        "objective": "profit",
+        "unit_cost": 1.20
+    }
+    resp1 = client.post("/api/pricing/optimize?dashboard_id=default", json=payload_profit)
+    assert resp1.status_code == 200
+    data1 = resp1.json()
+    assert data1["stock_code"] == "85123A"
+    assert data1["objective"] == "profit"
+    assert "recommended_price" in data1
+    assert "expected_30d_quantity" in data1
+    assert "expected_30d_revenue" in data1
+    assert "expected_30d_profit" in data1
+    assert data1["unit_cost"] == 1.20
+
+    # 2. Revenue objective without unit cost
+    payload_rev = {
+        "stock_code": "85123A",
+        "objective": "revenue",
+        "unit_cost": None
+    }
+    resp2 = client.post("/api/pricing/optimize?dashboard_id=default", json=payload_rev)
+    assert resp2.status_code == 200
+    data2 = resp2.json()
+    assert data2["objective"] == "revenue"
+    assert data2["unit_cost"] is None
+    assert data2["expected_30d_profit"] is None  # Never fabricated
+
+
+def test_pricing_export_analysis_excel_endpoint():
+    """Tests GET /api/pricing/export-analysis generates a valid .xlsx analysis workbook."""
+    import io
+    import openpyxl
+
+    resp = client.get("/api/pricing/export-analysis?stock_code=85123A&objective=profit&unit_cost=1.20&dashboard_id=default")
+    assert resp.status_code == 200
+    assert "spreadsheetml" in resp.headers["content-type"]
+    assert len(resp.content) > 1000
+
+    wb = openpyxl.load_workbook(io.BytesIO(resp.content))
+    assert "Pricing & Profit Decision" in wb.sheetnames
+    ws = wb["Pricing & Profit Decision"]
+    assert "Pricing & Profit Optimisation Analysis" in str(ws["A1"].value)
 
 
 def test_monitoring_summary_endpoint():
@@ -160,10 +272,13 @@ def test_inventory_excel_export_endpoint():
     assert "Excluded Products" in wb.sheetnames
 
 
-def test_inventory_email_report_endpoint():
-    """Tests POST /api/inventory/email-report attaches the Excel workbook."""
+def test_inventory_email_report_endpoint(monkeypatch):
+    """Tests POST /api/inventory/email-report attaches the Excel workbook (mocked to protect email limits)."""
+    from backend.app.services.email_service import email_service
+    monkeypatch.setattr(email_service, "send_inventory_report_email", lambda **kwargs: {"status": "success", "audit_id": "mocked-test-audit-id", "recipient": kwargs.get("recipient_email")})
+
     payload = {
-        "recipient_email": "akarshanrasyal4@gmail.com",
+        "recipient_email": "test_recipient@example.com",
         "subject": "Retail Inventory Replenishment Report",
         "message": "Please find attached the latest report."
     }

@@ -421,8 +421,8 @@ export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onCl
 
             {/* Offline Warning Banner if applicable */}
             {!isAvailable && (
-              <div style={{ padding: '14px 24px', background: 'rgba(239, 68, 68, 0.12)', borderBottom: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.9rem', color: '#FCA5A5' }}>
-                <AlertCircle size={20} color="#EF4444" style={{ flexShrink: 0 }} />
+              <div style={{ padding: '14px 24px', background: 'rgba(236, 72, 153, 0.12)', borderBottom: '1px solid rgba(236, 72, 153, 0.2)', display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.9rem', color: '#FBCFE8' }}>
+                <AlertCircle size={20} color="#EC4899" style={{ flexShrink: 0 }} />
                 <span>{statusMessage || "Gemini API Key missing. Please set GEMINI_API_KEY in backend environment."}</span>
               </div>
             )}

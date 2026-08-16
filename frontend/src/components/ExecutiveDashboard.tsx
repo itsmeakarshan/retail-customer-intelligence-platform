@@ -101,7 +101,7 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
   }
 
   if (!summary) {
-    return <div className="glass-card" style={{ padding: '40px', textAlign: 'center', color: 'var(--color-rose, #EF4444)' }}>Unable to load dashboard summary data.</div>;
+    return <div className="glass-card" style={{ padding: '40px', textAlign: 'center', color: 'var(--color-rose, #EC4899)' }}>Unable to load dashboard summary data.</div>;
   }
 
   // Derived calculations
@@ -242,27 +242,27 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
           <div className="kpi-subtitle">Active observation accounts</div>
         </div>
 
-        <div className="glass-card kpi-card" style={{ borderColor: 'rgba(239, 68, 68, 0.4)' }}>
+        <div className="glass-card kpi-card" style={{ borderColor: 'rgba(236, 72, 153, 0.4)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="kpi-title" style={{ color: 'var(--color-rose, #EF4444)' }}>Customers Who May Stop Buying</span>
-            <AlertTriangle size={20} color="var(--color-rose, #EF4444)" />
+            <span className="kpi-title" style={{ color: 'var(--color-rose, #EC4899)' }}>Customers Who May Stop Buying</span>
+            <AlertTriangle size={20} color="var(--color-rose, #EC4899)" />
           </div>
-          <div className="kpi-value" style={{ color: 'var(--color-rose, #EF4444)' }}>{summary.high_risk_customers.toLocaleString()}</div>
+          <div className="kpi-value" style={{ color: 'var(--color-rose, #EC4899)' }}>{summary.high_risk_customers.toLocaleString()}</div>
           <div className="kpi-subtitle">Showing signs they may stop buying</div>
         </div>
 
-        <div className="glass-card kpi-card" style={{ borderColor: 'rgba(239, 68, 68, 0.4)' }}>
+        <div className="glass-card kpi-card" style={{ borderColor: 'rgba(236, 72, 153, 0.4)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span className="kpi-title" style={{ color: 'var(--color-rose, #EF4444)' }}>Company May Lose — Next 30 Days</span>
+              <span className="kpi-title" style={{ color: 'var(--color-rose, #EC4899)' }}>Company May Lose — Next 30 Days</span>
               <span title="Estimated business exposure over 30 days derived from the ML model's 90-day forward prediction using an even daily run-rate assumption (predicted 90-day value ÷ 3). Estimated business exposure, not a guaranteed loss." style={{ cursor: 'help' }}>
                 <Info size={14} color="#FCA5A5" />
               </span>
             </div>
-            <PoundSterling size={20} color="var(--color-rose, #EF4444)" />
+            <PoundSterling size={20} color="var(--color-rose, #EC4899)" />
           </div>
-          <div className="kpi-value" style={{ color: 'var(--color-rose, #EF4444)' }}>&pound;{summary.total_company_may_lose_30d.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</div>
-          <div className="kpi-subtitle" style={{ color: 'var(--color-rose, #EF4444)', fontWeight: 600 }}>↓ {summary.loss_percentage_30d.toFixed(1)}% of estimated 30-day revenue</div>
+          <div className="kpi-value" style={{ color: 'var(--color-rose, #EC4899)' }}>&pound;{summary.total_company_may_lose_30d.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</div>
+          <div className="kpi-subtitle" style={{ color: 'var(--color-rose, #EC4899)', fontWeight: 600 }}>↓ {summary.loss_percentage_30d.toFixed(1)}% of estimated 30-day revenue</div>
         </div>
 
         <div className="glass-card kpi-card">
@@ -610,13 +610,13 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
                 <div key={seg.segment_name} onClick={() => onNavigateTab('revenue')} style={{ cursor: 'pointer' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
                     <span style={{ fontWeight: 500, color: 'var(--text-main, #F8FAFC)' }}>{seg.segment_name}</span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-rose, #EF4444)' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--color-rose, #EC4899)' }}>
                       &pound;{seg.company_may_lose_30d.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                       <span style={{ fontSize: '0.75rem', color: '#94A3B8', marginLeft: 6, fontWeight: 400 }}>(↓ {seg.loss_percentage_30d}%)</span>
                     </span>
                   </div>
                   <div style={{ height: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #F59E0B, #EF4444)', borderRadius: '4px' }} />
+                    <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #F59E0B, #EC4899)', borderRadius: '4px' }} />
                   </div>
                 </div>
               );
@@ -628,7 +628,7 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
         <div className="glass-card" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Who Should I Focus On?</h3>
-            <span style={{ fontSize: '0.75rem', background: 'rgba(239, 68, 68, 0.15)', color: 'var(--color-rose, #EF4444)', padding: '2px 8px', borderRadius: '10px' }}>
+            <span style={{ fontSize: '0.75rem', background: 'rgba(236, 72, 153, 0.15)', color: 'var(--color-rose, #EC4899)', padding: '2px 8px', borderRadius: '10px' }}>
               Click dot to open profile
             </span>
           </div>
@@ -636,8 +636,8 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
 
           <div style={{ position: 'relative', width: '100%', height: '210px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
             {/* 4 Quadrants */}
-            <div style={{ position: 'absolute', top: 0, right: 0, width: '50%', height: '50%', background: 'rgba(239, 68, 68, 0.08)', borderLeft: '1px dashed rgba(255,255,255,0.1)', borderBottom: '1px dashed rgba(255,255,255,0.1)' }}>
-              <span style={{ fontSize: '0.65rem', color: 'var(--color-rose, #EF4444)', fontWeight: 700, position: 'absolute', top: '6px', right: '8px' }}>Priority Customers</span>
+            <div style={{ position: 'absolute', top: 0, right: 0, width: '50%', height: '50%', background: 'rgba(236, 72, 153, 0.08)', borderLeft: '1px dashed rgba(255,255,255,0.1)', borderBottom: '1px dashed rgba(255,255,255,0.1)' }}>
+              <span style={{ fontSize: '0.65rem', color: 'var(--color-rose, #EC4899)', fontWeight: 700, position: 'absolute', top: '6px', right: '8px' }}>Priority Customers</span>
             </div>
             <div style={{ position: 'absolute', top: 0, left: 0, width: '50%', height: '50%', background: 'rgba(245, 158, 11, 0.05)', borderBottom: '1px dashed rgba(255,255,255,0.1)' }}>
               <span style={{ fontSize: '0.65rem', color: 'var(--color-amber, #F59E0B)', position: 'absolute', top: '6px', left: '8px' }}>Lower Priority</span>
@@ -654,7 +654,7 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
               const maxMon = (scatterCustomers || []).length > 0 ? Math.max(...scatterCustomers.map(sc => sc.gross_revenue)) : 10000;
               const xPct = Math.min(Math.max((c.gross_revenue / maxMon) * 100, 5), 95);
               const yPct = Math.min(Math.max((1 - c.churn_probability) * 100, 5), 95);
-              const dotColor = c.churn_probability >= 0.7 ? 'var(--color-rose, #EF4444)' : c.churn_probability >= 0.4 ? 'var(--color-amber, #F59E0B)' : 'var(--color-emerald, #10B981)';
+              const dotColor = c.churn_probability >= 0.7 ? 'var(--color-rose, #EC4899)' : c.churn_probability >= 0.4 ? 'var(--color-amber, #F59E0B)' : 'var(--color-emerald, #10B981)';
 
               return (
                 <div
@@ -699,13 +699,7 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
         <div style={{
           position: 'relative',
           width: '100%',
-          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          borderRadius: '12px',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          boxShadow: 'inset 0 1px 1px 0 rgba(255, 255, 255, 0.1), 0 8px 32px 0 rgba(0, 0, 0, 0.25)',
-          padding: '16px 8px',
+          padding: '8px 0',
           overflow: 'hidden'
         }}>
           <svg
@@ -837,8 +831,8 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
-          <div style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '10px', borderLeft: '4px solid var(--color-rose, #EF4444)' }}>
-            <h4 style={{ fontSize: '0.9rem', color: '#FCA5A5', fontWeight: 600, marginBottom: '4px' }}>High-Risk Concentration</h4>
+          <div style={{ padding: '16px', background: 'rgba(236, 72, 153, 0.08)', borderRadius: '10px', borderLeft: '4px solid var(--color-rose, #EC4899)' }}>
+            <h4 style={{ fontSize: '0.9rem', color: '#FBCFE8', fontWeight: 600, marginBottom: '4px' }}>High-Risk Concentration</h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)' }}>
               {summary.high_risk_customers.toLocaleString()} customers show high risk, exposing &pound;{summary.total_company_may_lose_30d.toLocaleString()} in expected 30-day revenue (↓ {summary.loss_percentage_30d.toFixed(1)}%).
             </p>
@@ -915,7 +909,7 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
                   </td>
                   <td style={{ padding: '12px', fontWeight: 600 }}>{(c.churn_probability * 100).toFixed(1)}%</td>
                   <td style={{ padding: '12px' }}>&pound;{c.expected_30d_revenue.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td>
-                  <td style={{ padding: '12px', fontWeight: 700, color: 'var(--color-rose, #EF4444)' }}>
+                  <td style={{ padding: '12px', fontWeight: 700, color: 'var(--color-rose, #EC4899)' }}>
                     &pound;{c.company_may_lose_30d.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>
@@ -1007,7 +1001,7 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
                   <Boxes size={18} color="#10B981" />
                   <strong style={{ color: '#F8FAFC', fontSize: '0.95rem' }}>Inventory Optimisation</strong>
                 </div>
-                <span style={{ fontSize: '0.75rem', color: '#F43F5E', fontWeight: 600 }}>
+                <span style={{ fontSize: '0.75rem', color: '#EC4899', fontWeight: 600 }}>
                   {inventorySummary?.replenishment_needed_count || 0} Need Orders
                 </span>
               </div>
@@ -1080,11 +1074,11 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
           </div>
 
           {/* Model & Data Monitoring Widget */}
-          <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.25)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '14px' }}>
+          <div style={{ padding: '18px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '12px', border: '1px solid rgba(236, 72, 153, 0.25)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '14px' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Activity size={18} color="#EF4444" />
+                  <Activity size={18} color="#EC4899" />
                   <strong style={{ color: '#F8FAFC', fontSize: '0.95rem' }}>Drift &amp; Health Monitoring</strong>
                 </div>
                 <span style={{ fontSize: '0.75rem', color: monitoringSummary?.overall_system_health === 'Healthy' ? '#10B981' : '#F59E0B', fontWeight: 600 }}>
@@ -1102,8 +1096,8 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
               onClick={() => onNavigateTab('monitoring')}
               style={{
                 padding: '8px 14px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: '#FCA5A5',
+                background: 'rgba(236, 72, 153, 0.15)',
+                color: '#FBCFE8',
                 border: '1px solid rgba(239, 68, 68, 0.3)',
                 borderRadius: '6px',
                 fontSize: '0.8rem',

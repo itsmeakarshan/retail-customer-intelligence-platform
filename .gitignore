@@ -1,16 +1,58 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Caches and runtime logs
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.log
+uvicorn.log
+
+# Environment and secrets
 .env
 *.env
+!.env.example
+
+# Python Virtual Environments
 .venv/
-__pycache__/
-*.pyc
-*.pyo
-.pytest_cache/
-.DS_Store
+env/
+venv/
+ENV/
+
+# Node & Frontend Build Artifacts
 frontend/node_modules/
 frontend/dist/
 frontend/build/
+frontend/.vite/
+node_modules/
+
+# Local databases and runtime uploads
 data/processed/*.db
 data/processed/*.sqlite
-ml/models/*.joblib
-ml/models/*.pkl
-!.gitkeep
+*.db
+backend/retail.db
+data/uploads/*
+!data/uploads/.gitkeep
+
+# macOS & OS clutter
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*

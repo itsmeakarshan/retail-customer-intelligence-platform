@@ -233,12 +233,12 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
         <div className="glass-card" style={{ padding: '20px', borderRadius: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)' }}>Products With Falling Demand</span>
-            <ArrowDownRight size={20} color="#F43F5E" />
+            <ArrowDownRight size={20} color="#EC4899" />
           </div>
-          <div style={{ fontSize: '1.85rem', fontWeight: 800, marginTop: '8px', color: '#F43F5E' }}>
+          <div style={{ fontSize: '1.85rem', fontWeight: 800, marginTop: '8px', color: '#EC4899' }}>
             {summary?.products_falling_demand || 0}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#F43F5E', marginTop: '6px' }}>
+          <div style={{ fontSize: '0.75rem', color: '#EC4899', marginTop: '6px' }}>
             &lt; -5% forecast momentum
           </div>
         </div>
@@ -320,7 +320,7 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
                   <div style={{
                     fontSize: '1.1rem',
                     fontWeight: 700,
-                    color: selectedProduct.trend_direction === 'Rising' ? '#10B981' : (selectedProduct.trend_direction === 'Falling' ? '#F43F5E' : 'var(--text-muted, #94A3B8)')
+                    color: selectedProduct.trend_direction === 'Rising' ? '#10B981' : (selectedProduct.trend_direction === 'Falling' ? '#EC4899' : 'var(--text-muted, #94A3B8)')
                   }}>
                     {selectedProduct.trend_pct > 0 ? '+' : ''}{selectedProduct.trend_pct}% ({selectedProduct.trend_direction})
                   </div>
@@ -559,7 +559,7 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
                           gap: '3px',
                           fontSize: '0.75rem',
                           fontWeight: 600,
-                          color: p.trend_direction === 'Rising' ? '#10B981' : (p.trend_direction === 'Falling' ? '#F43F5E' : 'var(--text-muted, #94A3B8)')
+                          color: p.trend_direction === 'Rising' ? '#10B981' : (p.trend_direction === 'Falling' ? '#EC4899' : 'var(--text-muted, #94A3B8)')
                         }}
                       >
                         {p.trend_direction === 'Rising' && <ArrowUpRight size={14} />}
@@ -575,11 +575,11 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
                           borderRadius: '6px',
                           fontSize: '0.75rem',
                           fontWeight: 600,
-                          background: p.status === 'Replenishment Needed' ? 'rgba(244, 63, 94, 0.15)' : (p.status === 'Monitor' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'),
-                          color: p.status === 'Replenishment Needed' ? '#F43F5E' : (p.status === 'Monitor' ? '#F59E0B' : '#10B981')
+                          background: p.status === 'Replenishment Needed' ? 'rgba(236, 72, 153, 0.15)' : (p.status === 'Monitor' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'),
+                          color: p.status === 'Replenishment Needed' ? '#EC4899' : (p.status === 'Monitor' ? '#F59E0B' : '#10B981')
                         }}
                       >
-                        {p.status === 'Replenishment Needed' ? '🔴 Replenish' : (p.status === 'Monitor' ? '🟡 Monitor' : '🟢 Healthy')}
+                        {p.status === 'Replenishment Needed' ? '🌸 Replenish' : (p.status === 'Monitor' ? '⭐ Monitor' : '🟢 Healthy')}
                       </span>
                     </td>
                     <td style={{ padding: '12px 8px', fontSize: '0.78rem', color: 'var(--text-muted, #94A3B8)' }}>

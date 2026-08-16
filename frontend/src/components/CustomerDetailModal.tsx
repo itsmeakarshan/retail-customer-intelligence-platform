@@ -39,7 +39,7 @@ export const CustomerDetailModal: React.FC<ModalProps> = ({ customerId, onClose 
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center', color: '#94A3B8' }}>Loading customer profile & risk analysis...</div>
         ) : !detail ? (
-          <div style={{ padding: 40, textAlign: 'center', color: '#EF4444' }}>Customer profile not found.</div>
+          <div style={{ padding: 40, textAlign: 'center', color: '#EC4899' }}>Customer profile not found.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
             {/* Modal Header */}
@@ -96,9 +96,9 @@ export const CustomerDetailModal: React.FC<ModalProps> = ({ customerId, onClose 
             {/* Why Does This Customer Need Attention? */}
             {explanation && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <div style={{ padding: 16, background: 'rgba(239, 68, 68, 0.05)', borderRadius: 12, border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                  <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.95rem', color: '#FCA5A5', margin: '0 0 12px 0' }}>
-                    <AlertTriangle size={18} color="#EF4444" /> Why Does This Customer Need Attention?
+                <div style={{ padding: 16, background: 'rgba(236, 72, 153, 0.05)', borderRadius: 12, border: '1px solid rgba(236, 72, 153, 0.2)' }}>
+                  <h4 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.95rem', color: '#FBCFE8', margin: '0 0 12px 0' }}>
+                    <AlertTriangle size={18} color="#EC4899" /> Why Does This Customer Need Attention?
                   </h4>
                   {explanation.top_risk_drivers.length === 0 ? (
                     <p style={{ fontSize: '0.85rem', color: '#94A3B8', margin: 0 }}>No major risk indicators detected.</p>
@@ -177,7 +177,7 @@ export const CustomerDetailModal: React.FC<ModalProps> = ({ customerId, onClose 
                         <td style={{ padding: '12px 16px', color: '#F8FAFC', fontSize: '0.85rem' }}>{tx.description}</td>
                         <td style={{ padding: '12px 16px', color: '#F8FAFC', fontSize: '0.85rem' }}>{tx.quantity}</td>
                         <td style={{ padding: '12px 16px', color: '#F8FAFC', fontSize: '0.85rem' }}>&pound;{tx.price.toFixed(2)}</td>
-                        <td style={{ padding: '12px 16px', fontWeight: 600, color: tx.is_cancelled ? '#EF4444' : '#10B981', fontSize: '0.85rem' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 600, color: tx.is_cancelled ? '#EC4899' : '#10B981', fontSize: '0.85rem' }}>
                           &pound;{tx.revenue.toFixed(2)}
                         </td>
                       </tr>

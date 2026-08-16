@@ -42,8 +42,8 @@ class ErrorBoundary extends Component<Props, State> {
           textAlign: 'center',
           fontFamily: 'Inter, sans-serif'
         }}>
-          <div className="glass-card" style={{ padding: '40px', maxWidth: '500px', borderRadius: '16px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-            <h2 style={{ color: '#EF4444', marginBottom: '12px', fontSize: '1.4rem' }}>Application Error Encountered</h2>
+          <div className="glass-card" style={{ padding: '40px', maxWidth: '500px', borderRadius: '16px', border: '1px solid rgba(236, 72, 153, 0.3)' }}>
+            <h2 style={{ color: '#EC4899', marginBottom: '12px', fontSize: '1.4rem' }}>Application Error Encountered</h2>
             <p style={{ color: '#94A3B8', fontSize: '0.9rem', marginBottom: '20px' }}>
               {this.state.error?.message || 'An unexpected error occurred while rendering the dashboard.'}
             </p>

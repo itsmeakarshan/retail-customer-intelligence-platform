@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   fetchExpiryDashboard,
   fetchExpiryProductsFiltered,
@@ -91,17 +91,22 @@ export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNaviga
     }
   };
 
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await loadDashboardData();
-      await loadProductsData();
+      await Promise.all([loadDashboardData(), loadProductsData()]);
       setLoading(false);
     }
     init();
   }, []);
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     loadProductsData();
   }, [filterPeriod, selectedStatus, searchQuery]);
 
@@ -290,9 +295,9 @@ export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNaviga
         <div className="glass-card metric-card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600 }}>⚠️ Already Expired</span>
-            <AlertTriangle size={20} color="#EF4444" />
+            <AlertTriangle size={20} color="#EC4899" />
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#EF4444' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#EC4899' }}>
             {kpis?.already_expired.toLocaleString()}
           </div>
           <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '4px' }}>Items past expiration date</div>
@@ -418,7 +423,7 @@ export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNaviga
               <div style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: 600, marginBottom: '4px' }}>
                 {valP.period}
               </div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: valP.period === 'Expired' ? '#EF4444' : valP.period === 'Within 7 Days' ? '#F59E0B' : '#F8FAFC' }}>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: valP.period === 'Expired' ? '#EC4899' : valP.period === 'Within 7 Days' ? '#F59E0B' : '#F8FAFC' }}>
                 £{valP.stock_value.toLocaleString('en-GB', { maximumFractionDigits: 0 })}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>
@@ -567,7 +572,7 @@ export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNaviga
                       <td style={{ fontWeight: 600 }}>{p.units_available} units</td>
                       <td>£{p.unit_price.toFixed(2)}</td>
                       <td style={{ fontWeight: 700 }}>£{p.stock_value.toFixed(2)}</td>
-                      <td style={{ fontWeight: 600, color: isExpired ? '#EF4444' : p.expiry_days_remaining <= 7 ? '#F59E0B' : '#34D399' }}>
+                      <td style={{ fontWeight: 600, color: isExpired ? '#EC4899' : p.expiry_days_remaining <= 7 ? '#F59E0B' : '#34D399' }}>
                         {p.days_remaining_label}
                       </td>
                       <td>

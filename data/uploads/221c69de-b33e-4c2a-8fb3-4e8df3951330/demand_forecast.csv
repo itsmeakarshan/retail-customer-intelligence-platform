@@ -1,5 +1,0 @@
-stock_code,description,unit_price,recent_30d_demand,expected_30d_demand,lower_30d_estimate,upper_30d_estimate,daily_demand_std,trend_pct,trend_direction,status,recommended_action,confidence_interval_label,current_stock
-84879,Assorted Colour Bird Ornament,1.69,32.0,960.0,952.1,967.9,1.0,0.0,Stable,Healthy,🟢 Stable Demand — Regular stock maintenance recommended,85% Empirical Error Bound (No Future Leakage),
-22960,Jam Making Set With Jars,4.25,6.0,180.0,172.1,187.9,1.0,0.0,Stable,Healthy,🟢 Stable Demand — Regular stock maintenance recommended,85% Empirical Error Bound (No Future Leakage),
-71053,White Metal Lantern,3.39,6.0,180.0,172.1,187.9,1.0,0.0,Stable,Healthy,🟢 Stable Demand — Regular stock maintenance recommended,85% Empirical Error Bound (No Future Leakage),
-85123A,White Hanging Heart T-Light Holder,2.55,6.0,180.0,172.1,187.9,1.0,0.0,Stable,Healthy,🟢 Stable Demand — Regular stock maintenance recommended,85% Empirical Error Bound (No Future Leakage),

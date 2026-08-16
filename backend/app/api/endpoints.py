@@ -2008,16 +2008,18 @@ def get_pricing_products(
     dashboard_id: Optional[str] = Query("default"),
     category: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    limit: int = Query(100, ge=1, le=500),
+    limit: Optional[int] = Query(None),
     db: Session = Depends(get_db)
 ):
     session_dir = os.path.join(csv_processor.UPLOADS_DIR, dashboard_id) if dashboard_id and dashboard_id != "default" else None
-    items = retail_intelligence_service.get_price_elasticity_list(db=db, session_dir=session_dir, limit=limit)
+    items = retail_intelligence_service.get_price_elasticity_list(db=db, session_dir=session_dir, limit=0)
     if search:
-        s_lower = search.lower()
-        items = [i for i in items if s_lower in i['stock_code'].lower() or s_lower in i['description'].lower()]
+        s_lower = search.lower().strip()
+        items = [i for i in items if s_lower in str(i['stock_code']).lower() or s_lower in str(i.get('description', '')).lower()]
     if category:
-        items = [i for i in items if category.lower() in i.get('category', '').lower()]
+        items = [i for i in items if category.lower() in str(i.get('category', '')).lower()]
+    if limit and limit > 0:
+        items = items[:limit]
     return items
 
 @router.post("/pricing/simulate", response_model=schemas.PriceSimulationResponse)
@@ -2035,13 +2037,59 @@ def simulate_price_scenario(
         session_dir=session_dir
     )
 
+@router.post("/pricing/optimize", response_model=schemas.PriceOptimizationResponse)
+def optimize_product_price(
+    req: schemas.PriceOptimizationRequest,
+    dashboard_id: Optional[str] = Query("default"),
+    db: Session = Depends(get_db)
+):
+    session_dir = os.path.join(csv_processor.UPLOADS_DIR, dashboard_id) if dashboard_id and dashboard_id != "default" else None
+    return retail_intelligence_service.optimize_price(
+        stock_code=req.stock_code,
+        objective=req.objective,
+        unit_cost=req.unit_cost,
+        min_price_factor=req.min_price_factor or 0.50,
+        max_price_factor=req.max_price_factor or 1.50,
+        db=db,
+        session_dir=session_dir
+    )
+
+
+
+
+
+@router.get("/pricing/export-analysis")
+def export_pricing_analysis(
+    stock_code: str = Query(...),
+    objective: str = Query("profit"),
+    unit_cost: Optional[float] = Query(None),
+    scenario_price: Optional[float] = Query(None),
+    dashboard_id: Optional[str] = Query("default"),
+    db: Session = Depends(get_db)
+):
+    session_dir = os.path.join(csv_processor.UPLOADS_DIR, dashboard_id) if dashboard_id and dashboard_id != "default" else None
+    excel_bytes = retail_intelligence_service.export_pricing_analysis_excel(
+        stock_code=stock_code,
+        objective=objective,
+        unit_cost=unit_cost,
+        scenario_price=scenario_price,
+        db=db,
+        session_dir=session_dir
+    )
+    excel_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    return Response(
+        content=excel_bytes,
+        media_type=excel_type,
+        headers={"Content-Disposition": f"attachment; filename=pricing_analysis_{stock_code}_{objective}.xlsx"}
+    )
+
 @router.get("/pricing/download")
 def download_pricing_csv(
     dashboard_id: Optional[str] = Query("default"),
     db: Session = Depends(get_db)
 ):
     session_dir = os.path.join(csv_processor.UPLOADS_DIR, dashboard_id) if dashboard_id and dashboard_id != "default" else None
-    items = retail_intelligence_service.get_price_elasticity_list(db=db, session_dir=session_dir, limit=300)
+    items = retail_intelligence_service.get_price_elasticity_list(db=db, session_dir=session_dir, limit=5000)
     df = pd.DataFrame(items)
     csv_bytes = df.to_csv(index=False).encode('utf-8')
     return Response(
@@ -2096,6 +2144,70 @@ def download_monitoring_csv(
     )
 
 
+# =============================================================================
+# PHASE 13: MODEL INSIGHTS ENDPOINTS
+# =============================================================================
+@router.get("/model-insights/summary", response_model=schemas.ModelInsightsSummaryResponse)
+def get_model_insights_summary(
+    dashboard_id: Optional[str] = Query("default"),
+    db: Session = Depends(get_db)
+):
+    session_dir = os.path.join(csv_processor.UPLOADS_DIR, dashboard_id) if dashboard_id and dashboard_id != "default" else None
+    return retail_intelligence_service.get_model_insights_summary(db=db, session_dir=session_dir)
 
+@router.get("/model-insights/download")
+def download_model_insights_csv(
+    dashboard_id: Optional[str] = Query("default"),
+    db: Session = Depends(get_db)
+):
+    session_dir = os.path.join(csv_processor.UPLOADS_DIR, dashboard_id) if dashboard_id and dashboard_id != "default" else None
+    insights = retail_intelligence_service.get_model_insights_summary(db=db, session_dir=session_dir)
+    rows = []
+    for m in insights.get("models", []):
+        for metric in m.get("evaluation_metrics", []):
+            rows.append({
+                "model_id": m["model_id"],
+                "model_name": m["model_name"],
+                "model_family": m["model_family"],
+                "algorithm": m["algorithm"],
+                "metric_name": metric["metric_name"],
+                "metric_value": metric["metric_value"],
+                "metric_formatted": metric["metric_formatted"],
+                "target_variable": m["target_variable"],
+                "evaluation_records_count": m["evaluation_records_count"],
+                "validation_methodology": m["validation_methodology"]
+            })
+    df = pd.DataFrame(rows)
+    csv_bytes = df.to_csv(index=False).encode('utf-8')
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=model_insights_{dashboard_id}.csv"}
+    )
 
+# =============================================================================
+# PHASE 14: DATA QUALITY ENDPOINTS
+# =============================================================================
+@router.get("/data-quality/summary", response_model=schemas.DataQualitySummaryResponse)
+def get_data_quality_summary(
+    dashboard_id: Optional[str] = Query("default"),
+    db: Session = Depends(get_db)
+):
+    session_dir = os.path.join(csv_processor.UPLOADS_DIR, dashboard_id) if dashboard_id and dashboard_id != "default" else None
+    return retail_intelligence_service.get_data_quality_summary(db=db, session_dir=session_dir)
 
+@router.get("/data-quality/download")
+def download_data_quality_csv(
+    dashboard_id: Optional[str] = Query("default"),
+    db: Session = Depends(get_db)
+):
+    session_dir = os.path.join(csv_processor.UPLOADS_DIR, dashboard_id) if dashboard_id and dashboard_id != "default" else None
+    dq = retail_intelligence_service.get_data_quality_summary(db=db, session_dir=session_dir)
+    column_audits = dq.get("column_audits", [])
+    df = pd.DataFrame(column_audits)
+    csv_bytes = df.to_csv(index=False).encode('utf-8')
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=data_quality_audit_{dashboard_id}.csv"}
+    )

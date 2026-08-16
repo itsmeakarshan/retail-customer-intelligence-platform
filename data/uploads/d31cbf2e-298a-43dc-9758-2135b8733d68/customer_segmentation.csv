@@ -1,5 +1,0 @@
-segment_name,customer_count,avg_recency,total_monetary,avg_monetary,expected_30d_revenue,company_may_lose_30d,loss_percentage_30d
-Active Casuals,40,34.2,7778.85,194.47125,8794.39,4554.75,51.8
-High-Value At Risk,9,113.3,24632.780000000002,2736.9755555555557,1369.15,607.9399999999999,44.4
-High-Value Champions,15,11.7,65729.81,4381.9873333333335,9087.97,687.48,7.6
-Low-Value / Dormant,36,134.2,9734.15,270.3930555555555,1310.04,926.52,70.7

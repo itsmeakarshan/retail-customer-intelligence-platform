@@ -513,7 +513,10 @@ class PriceElasticityItem(BaseModel):
     category: Optional[str] = "Insufficient Variation"
     interpretation: Optional[str] = ""
     is_statistically_significant: Optional[bool] = False
+    is_statistically_eligible: Optional[bool] = False
     status: Optional[str] = "Insufficient Data"
+    data_provenance: Optional[str] = "Real historical transactions"
+    methodology: Optional[str] = "Ordinary Least Squares Log-Log regression with Month and Day-of-Week controls"
 
 class PricingSummaryResponse(BaseModel):
     total_products_analysed: int
@@ -543,10 +546,74 @@ class PriceSimulationResponse(BaseModel):
     revenue_difference: float
     revenue_diff_pct: float
     scenario_unit_cost: Optional[float] = None
+    baseline_cost: Optional[float] = None
+    scenario_cost: Optional[float] = None
     baseline_profit: Optional[float] = None
     scenario_profit: Optional[float] = None
     profit_difference: Optional[float] = None
+    baseline_margin_pct: Optional[float] = None
+    scenario_margin_pct: Optional[float] = None
     disclosure: str
+
+class PriceOptimizationRequest(BaseModel):
+    stock_code: str
+    objective: str = "profit"  # "profit" or "revenue"
+    unit_cost: Optional[float] = None
+    min_price_factor: Optional[float] = 0.50
+    max_price_factor: Optional[float] = 1.50
+
+class PriceOptimizationPoint(BaseModel):
+    price: float
+    price_change_pct: float
+    expected_quantity: float
+    expected_revenue: float
+    expected_cost: Optional[float] = None
+    expected_profit: Optional[float] = None
+    profit_margin_pct: Optional[float] = None
+
+class PriceOptimizationResponse(BaseModel):
+    stock_code: str
+    description: str
+    objective: str
+    elasticity_used: float
+    is_statistically_eligible: bool
+    status: str
+    message: Optional[str] = None
+    
+    # Real Historical Baseline Data
+    historical_avg_price: float
+    historical_units_sold: int
+    historical_transactions_count: int
+    historical_distinct_prices: int
+    baseline_30d_quantity: float
+    baseline_30d_revenue: float
+    baseline_30d_cost: Optional[float] = None
+    baseline_30d_profit: Optional[float] = None
+    baseline_profit_margin_pct: Optional[float] = None
+    
+    # Business Inputs
+    unit_cost: Optional[float] = None
+    search_min_price: float
+    search_max_price: float
+    
+    # Optimisation Recommendations
+    recommended_price: float
+    price_change_pct: float
+    expected_30d_quantity: float
+    quantity_change_pct: float
+    expected_30d_revenue: float
+    revenue_difference: float
+    revenue_diff_pct: float
+    expected_30d_cost: Optional[float] = None
+    expected_30d_profit: Optional[float] = None
+    profit_difference: Optional[float] = None
+    profit_diff_pct: Optional[float] = None
+    profit_margin_pct: Optional[float] = None
+    
+    is_at_boundary: bool = False
+    boundary_note: Optional[str] = None
+    disclosure: str
+    sensitivity_curve: List[PriceOptimizationPoint] = []
 
 # ==========================================
 # PHASE 12: MODEL / DATA MONITORING SCHEMAS
@@ -575,6 +642,33 @@ class DemandAlertItem(BaseModel):
     severity: str # "Warning", "Alert"
     message: str
 
+class SystemHealthInfo(BaseModel):
+    status: str
+    db_connected: bool
+    db_tables_count: int
+    db_records_count: int
+    last_health_check: str
+    api_latency_ms: float
+
+class ModelRuntimeStatus(BaseModel):
+    model_name: str
+    model_family: str
+    is_loaded: bool
+    artifact_exists: bool
+    artifact_path: str
+    artifact_size_kb: float
+    records_scored: int
+    status: str
+
+class DataFreshnessInfo(BaseModel):
+    total_transactions: int
+    total_customers: int
+    total_products: int
+    earliest_date: str
+    latest_date: str
+    date_span_days: int
+    storage_type: str
+
 class MonitoringSummaryResponse(BaseModel):
     overall_system_health: str # "Healthy", "Warning", "Alert"
     feature_drift_status: str
@@ -586,4 +680,99 @@ class MonitoringSummaryResponse(BaseModel):
     demand_alerts: List[DemandAlertItem]
     recent_window_days: int
     timestamp: str
+    system_health: SystemHealthInfo
+    model_runtime_statuses: List[ModelRuntimeStatus]
+    data_freshness: DataFreshnessInfo
+    historical_monitoring_disclosure: str
+
+# ==========================================
+# PHASE 13: MODEL INSIGHTS SCHEMAS
+# ==========================================
+class ModelEvaluationMetric(BaseModel):
+    metric_name: str
+    metric_value: Optional[float] = None
+    metric_formatted: str
+    interpretation: Optional[str] = None
+
+class ModelInventoryItem(BaseModel):
+    model_id: str
+    model_name: str
+    model_family: str
+    algorithm: str
+    business_problem: str
+    business_summary: str
+    input_features: List[str]
+    target_variable: str
+    training_status: str
+    is_loaded: bool
+    artifact_path: str
+    artifact_size_bytes: Optional[int] = None
+    last_trained_or_created: Optional[str] = None
+    evaluation_records_count: int
+    validation_methodology: str
+    evaluation_metrics: List[ModelEvaluationMetric]
+    benchmark_comparison: Optional[List[Dict[str, Any]]] = None
+    limitations: List[str]
+
+class ModelInsightsSummaryResponse(BaseModel):
+    total_models_count: int
+    active_models_count: int
+    models: List[ModelInventoryItem]
+    provenance_notes: str
+
+# ==========================================
+# PHASE 14: DATA QUALITY SCHEMAS
+# ==========================================
+class ColumnQualityAudit(BaseModel):
+    column_name: str
+    data_type: str
+    total_records: int
+    valid_records: int
+    missing_records: int
+    missing_percentage: float
+    unique_count: int
+    validity_status: str
+    notes: str
+
+class ETLPipelineAuditStep(BaseModel):
+    step_number: int
+    step_title: str
+    input_count: int
+    output_count: int
+    filtered_count: int
+    rule_description: str
+    business_rationale: str
+
+class ProductCoverageAudit(BaseModel):
+    total_catalog_products: int
+    eligible_products_count: int
+    eligible_percentage: float
+    excluded_products_count: int
+    excluded_percentage: float
+    excluded_reason: str
+    multi_price_elastic_products: int
+    multi_price_percentage: float
+    fixed_price_products: int
+    fixed_price_percentage: float
+
+class MLDataQualityImpact(BaseModel):
+    ml_pipeline_name: str
+    affected_by: str
+    mitigation_applied: str
+    decision_impact: str
+
+class DataQualitySummaryResponse(BaseModel):
+    raw_dataset_rows: int
+    clean_dataset_rows: int
+    positive_sales_rows: int
+    cancelled_rows: int
+    cancellation_rate_pct: float
+    unique_customers_count: int
+    unique_products_count: int
+    date_range_start: str
+    date_range_end: str
+    column_audits: List[ColumnQualityAudit]
+    etl_pipeline_steps: List[ETLPipelineAuditStep]
+    product_coverage: ProductCoverageAudit
+    ml_impacts: List[MLDataQualityImpact]
 

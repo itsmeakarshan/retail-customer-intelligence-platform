@@ -265,7 +265,7 @@ export const SegmentationPage: React.FC<SegmentationPageProps> = ({ activeDashbo
               </div>
               <div>
                 <span style={{ color: '#94A3B8', display: 'block', marginBottom: 2 }}>Risk Level</span>
-                <div style={{ fontWeight: 600, color: seg.avg_churn_prob > 0.5 ? '#EF4444' : '#10B981' }}>
+                <div style={{ fontWeight: 600, color: seg.avg_churn_prob > 0.5 ? '#EC4899' : '#10B981' }}>
                   {(seg.avg_churn_prob * 100).toFixed(0)}% Risk
                 </div>
               </div>
@@ -281,7 +281,7 @@ export const SegmentationPage: React.FC<SegmentationPageProps> = ({ activeDashbo
                 </div>
                 <span style={{ fontSize: '0.7rem', color: '#94A3B8', display: 'block' }}>↓ {seg.loss_percentage_30d}% of 30-day expected</span>
               </div>
-              <span style={{ fontWeight: 700, color: '#EF4444' }}>&pound;{(seg.company_may_lose_30d || (seg.total_revenue_at_risk / 3.0)).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</span>
+              <span style={{ fontWeight: 700, color: '#EC4899' }}>&pound;{(seg.company_may_lose_30d || (seg.total_revenue_at_risk / 3.0)).toLocaleString('en-GB', { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
         ))}
@@ -316,7 +316,7 @@ export const SegmentationPage: React.FC<SegmentationPageProps> = ({ activeDashbo
                   <td style={{ padding: '12px 20px', color: '#F8FAFC', fontSize: '0.85rem' }}>&pound;{seg.total_monetary.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td>
                   <td style={{ padding: '12px 20px', color: '#F8FAFC', fontSize: '0.85rem' }}>&pound;{seg.avg_monetary.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</td>
                   <td style={{ padding: '12px 20px', color: '#F8FAFC', fontSize: '0.85rem' }}>{(seg.avg_churn_prob * 100).toFixed(1)}%</td>
-                  <td style={{ padding: '12px 20px', fontWeight: 700, color: '#EF4444', fontSize: '0.85rem' }}>
+                  <td style={{ padding: '12px 20px', fontWeight: 700, color: '#EC4899', fontSize: '0.85rem' }}>
                     &pound;{(seg.company_may_lose_30d || (seg.total_revenue_at_risk / 3.0)).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
                   </td>
                 </tr>

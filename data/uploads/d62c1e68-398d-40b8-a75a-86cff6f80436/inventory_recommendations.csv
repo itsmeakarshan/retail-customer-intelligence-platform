@@ -1,5 +1,0 @@
-stock_code,description,unit_price,expected_30d_demand,lead_time_days,safety_stock,reorder_point,current_stock,suggested_order,status,reason,stock_value_scenario,order_cost_scenario,has_expiry_risk
-84879,Assorted Colour Bird Ornament,1.69,32.0,7,5,13,140,0,Excess Stock,Current stock (140) significantly exceeds 60-day demand cycle.,236.6,0.0,False
-22960,Jam Making Set With Jars,4.25,6.0,7,5,7,6,5,Replenishment Needed,Current stock (6) is at or below Reorder Point (7).,25.5,21.25,False
-71053,White Metal Lantern,3.39,6.0,7,5,7,6,5,Replenishment Needed,Current stock (6) is at or below Reorder Point (7).,20.34,16.95,False
-85123A,White Hanging Heart T-Light Holder,2.55,6.0,7,5,7,5,6,Replenishment Needed,Current stock (5) is at or below Reorder Point (7).,12.75,15.3,False

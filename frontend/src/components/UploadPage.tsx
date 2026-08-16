@@ -777,9 +777,9 @@ export const UploadPage: React.FC = () => {
             <div className="glass-card metric-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <span style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 600 }}>Needs Attention</span>
-                <AlertTriangle size={18} color="#EF4444" />
+                <AlertTriangle size={18} color="#EC4899" />
               </div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#EF4444' }}>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#EC4899' }}>
                 {results.high_risk_customers.toLocaleString()}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>Accounts showing &gt;70% risk</div>
@@ -790,15 +790,15 @@ export const UploadPage: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 600 }}>Company May Lose</span>
                   <span title="Estimated 30-day loss exposure (churn probability × 30-day estimated spend). Estimated business exposure, not a guaranteed loss." style={{ cursor: 'help' }}>
-                    <Info size={13} color="#FCA5A5" />
+                    <Info size={13} color="#FBCFE8" />
                   </span>
                 </div>
-                <PoundSterling size={18} color="#EF4444" />
+                <PoundSterling size={18} color="#EC4899" />
               </div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#EF4444' }}>
+              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#EC4899' }}>
                 £{results.total_company_may_lose_30d.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#EF4444', fontWeight: 600, marginTop: '4px' }}>
+              <div style={{ fontSize: '0.75rem', color: '#EC4899', fontWeight: 600, marginTop: '4px' }}>
                 ↓ {results.loss_percentage_30d.toFixed(1)}% of estimated 30-day revenue
               </div>
             </div>
@@ -929,9 +929,9 @@ export const UploadPage: React.FC = () => {
 
       {/* ERROR DISPLAY STATE */}
       {step === 'ERROR' && (
-        <div className="glass-card" style={{ padding: '32px', borderLeft: '4px solid #EF4444', textAlign: 'center' }}>
-          <XCircle size={40} color="#EF4444" style={{ margin: '0 auto 12px auto', display: 'block' }} />
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#FCA5A5', margin: '0 0 8px 0' }}>
+        <div className="glass-card" style={{ padding: '32px', borderLeft: '4px solid #EC4899', textAlign: 'center' }}>
+          <XCircle size={40} color="#EC4899" style={{ margin: '0 auto 12px auto', display: 'block' }} />
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#FBCFE8', margin: '0 0 8px 0' }}>
             Upload or Processing Error
           </h3>
           <p style={{ color: '#94A3B8', fontSize: '0.9rem', maxWidth: '600px', margin: '0 auto 20px auto' }}>

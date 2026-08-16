@@ -664,7 +664,7 @@ class CSVProcessor:
 
         # Price Elasticity
         try:
-            price_list = retail_intelligence_service.get_price_elasticity_list(session_dir=session_dir, limit=100)
+            price_list = retail_intelligence_service.get_price_elasticity_list(session_dir=session_dir, limit=5000)
             if price_list:
                 df_price = pd.DataFrame(price_list)
                 df_price.to_csv(price_csv_path, index=False)

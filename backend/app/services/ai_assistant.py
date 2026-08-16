@@ -273,11 +273,11 @@ class BusinessAIAssistant:
                 "scenario_disclosure": "Operational stock levels and lead times are scenario simulation inputs"
             },
             "price_analytics_and_elasticity": pricing_summary or {
-                "total_products_analysed": 150,
-                "elastic_price_sensitive_products": 141,
-                "inelastic_products": 2,
-                "avg_elasticity_elastic_items": -6.8,
-                "methodology_note": "Based on observational regression; relationships indicate statistical association rather than controlled causality"
+                "total_products_analysed": 4631,
+                "elastic_price_sensitive_products": 557,
+                "inelastic_products": 235,
+                "avg_elasticity_elastic_items": -3.78,
+                "methodology_note": "Based on observational Log-Log OLS regression with seasonal and day-of-week controls; relationships indicate statistical association rather than controlled causality"
             },
             "system_monitoring": monitoring_summary or {
                 "overall_system_health": "Healthy",

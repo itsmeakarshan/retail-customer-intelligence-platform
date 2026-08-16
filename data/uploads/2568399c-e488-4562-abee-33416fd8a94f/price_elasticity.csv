@@ -1,6 +1,0 @@
-stock_code,status,sample_size,distinct_prices,elasticity,ci_lower,ci_upper,p_value,r_squared,category,interpretation,is_statistically_significant,description
-84879,Insufficient Data,1,1,,,,,,Insufficient Variation,Fewer than 15 transactions (1 recorded). Insufficient data to fit elasticity model.,False,Assorted Colour Bird Ornament
-22960,Insufficient Data,1,1,,,,,,Insufficient Variation,Fewer than 15 transactions (1 recorded). Insufficient data to fit elasticity model.,False,Jam Making Set With Jars
-71053,Insufficient Data,1,1,,,,,,Insufficient Variation,Fewer than 15 transactions (1 recorded). Insufficient data to fit elasticity model.,False,White Metal Lantern
-85123A,Insufficient Data,1,1,,,,,,Insufficient Variation,Fewer than 15 transactions (1 recorded). Insufficient data to fit elasticity model.,False,White Hanging Heart T-Light Holder
-D,Insufficient Data,0,0,,,,,,Insufficient Variation,Fewer than 15 transactions (0 recorded). Insufficient data to fit elasticity model.,False,Discount

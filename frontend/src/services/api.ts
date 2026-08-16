@@ -1,4 +1,4 @@
-export const API_BASE = "http://localhost:8000/api";
+export const API_BASE = (import.meta as any).env?.VITE_API_BASE || "http://localhost:8000/api";
 
 export function formatSegmentName(name: string): string {
   if (!name) return name;
@@ -949,7 +949,10 @@ export interface PriceElasticityItem {
   category: string;
   interpretation: string;
   is_statistically_significant: boolean;
+  is_statistically_eligible?: boolean;
   status: string;
+  data_provenance?: string;
+  methodology?: string;
 }
 
 export interface PricingSummary {
@@ -981,10 +984,77 @@ export interface PriceSimulationResult {
   revenue_difference: number;
   revenue_diff_pct: number;
   scenario_unit_cost?: number;
+  baseline_cost?: number;
+  scenario_cost?: number;
   baseline_profit?: number;
   scenario_profit?: number;
   profit_difference?: number;
+  baseline_margin_pct?: number;
+  scenario_margin_pct?: number;
   disclosure: string;
+}
+
+export interface PriceOptimizationRequest {
+  stock_code: string;
+  objective: "profit" | "revenue";
+  unit_cost?: number;
+  min_price_factor?: number;
+  max_price_factor?: number;
+}
+
+export interface PriceOptimizationPoint {
+  price: number;
+  price_change_pct: number;
+  expected_quantity: number;
+  expected_revenue: number;
+  expected_cost?: number;
+  expected_profit?: number;
+  profit_margin_pct?: number;
+}
+
+export interface PriceOptimizationResult {
+  stock_code: string;
+  description: string;
+  objective: "profit" | "revenue";
+  elasticity_used: number;
+  is_statistically_eligible: boolean;
+  status: string;
+  message?: string;
+  
+  // Real Historical Baseline Data
+  historical_avg_price: number;
+  historical_units_sold: number;
+  historical_transactions_count: number;
+  historical_distinct_prices: number;
+  baseline_30d_quantity: number;
+  baseline_30d_revenue: number;
+  baseline_30d_cost?: number;
+  baseline_30d_profit?: number;
+  baseline_profit_margin_pct?: number;
+  
+  // Business Inputs
+  unit_cost?: number;
+  search_min_price: number;
+  search_max_price: number;
+  
+  // Optimisation Recommendations
+  recommended_price: number;
+  price_change_pct: number;
+  expected_30d_quantity: number;
+  quantity_change_pct: number;
+  expected_30d_revenue: number;
+  revenue_difference: number;
+  revenue_diff_pct: number;
+  expected_30d_cost?: number;
+  expected_30d_profit?: number;
+  profit_difference?: number;
+  profit_diff_pct?: number;
+  profit_margin_pct?: number;
+  
+  is_at_boundary: boolean;
+  boundary_note?: string;
+  disclosure: string;
+  sensitivity_curve: PriceOptimizationPoint[];
 }
 
 export async function fetchPricingSummary(dashboardId = "default"): Promise<PricingSummary> {
@@ -1023,9 +1093,26 @@ export async function simulatePriceScenario(
   return res.json();
 }
 
+export async function optimizeProductPrice(
+  payload: PriceOptimizationRequest,
+  dashboardId = "default"
+): Promise<PriceOptimizationResult> {
+  const res = await fetch(`${API_BASE}/pricing/optimize?dashboard_id=${encodeURIComponent(dashboardId)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error("Price optimisation failed.");
+  return res.json();
+}
+
 export function getPriceElasticityDownloadURL(dashboardId = "default"): string {
   return `${API_BASE}/pricing/download?dashboard_id=${encodeURIComponent(dashboardId)}`;
 }
+
+
+
+
 
 // =============================================================================
 // PHASE 12: MODEL & DATA MONITORING TYPES & API
@@ -1056,6 +1143,36 @@ export interface DemandAlertItem {
   message: string;
 }
 
+export interface SystemHealthInfo {
+  status: "Healthy" | "Warning" | "Alert";
+  db_connected: boolean;
+  db_tables_count: number;
+  db_records_count: number;
+  last_health_check: string;
+  api_latency_ms: number;
+}
+
+export interface ModelRuntimeStatus {
+  model_name: string;
+  model_family: string;
+  is_loaded: boolean;
+  artifact_exists: boolean;
+  artifact_path: string;
+  artifact_size_kb: number;
+  records_scored: number;
+  status: string;
+}
+
+export interface DataFreshnessInfo {
+  total_transactions: number;
+  total_customers: number;
+  total_products: number;
+  earliest_date: string;
+  latest_date: string;
+  date_span_days: number;
+  storage_type: string;
+}
+
 export interface MonitoringSummary {
   overall_system_health: "Healthy" | "Warning" | "Alert";
   feature_drift_status: string;
@@ -1067,6 +1184,10 @@ export interface MonitoringSummary {
   demand_alerts: DemandAlertItem[];
   recent_window_days: number;
   timestamp: string;
+  system_health?: SystemHealthInfo;
+  model_runtime_statuses?: ModelRuntimeStatus[];
+  data_freshness?: DataFreshnessInfo;
+  historical_monitoring_disclosure?: string;
 }
 
 export async function fetchMonitoringSummary(dashboardId = "default"): Promise<MonitoringSummary> {
@@ -1092,6 +1213,123 @@ export function getMonitoringDownloadURL(dashboardId = "default"): string {
 }
 
 
+// =============================================================================
+// PHASE 13: MODEL INSIGHTS TYPES & API
+// =============================================================================
+export interface ModelEvaluationMetric {
+  metric_name: string;
+  metric_value?: number;
+  metric_formatted: string;
+  interpretation?: string;
+}
+
+export interface ModelInventoryItem {
+  model_id: string;
+  model_name: string;
+  model_family: string;
+  algorithm: string;
+  business_problem: string;
+  business_summary: string;
+  input_features: string[];
+  target_variable: string;
+  training_status: string;
+  is_loaded: boolean;
+  artifact_path: string;
+  artifact_size_bytes?: number;
+  last_trained_or_created?: string;
+  evaluation_records_count: number;
+  validation_methodology: string;
+  evaluation_metrics: ModelEvaluationMetric[];
+  benchmark_comparison?: any[];
+  limitations: string[];
+}
+
+export interface ModelInsightsSummary {
+  total_models_count: number;
+  active_models_count: number;
+  models: ModelInventoryItem[];
+  provenance_notes: string;
+}
+
+export async function fetchModelInsightsSummary(dashboardId = "default"): Promise<ModelInsightsSummary> {
+  const res = await fetch(`${API_BASE}/model-insights/summary?dashboard_id=${encodeURIComponent(dashboardId)}`);
+  if (!res.ok) throw new Error("Failed to fetch model insights summary.");
+  return res.json();
+}
+
+export function getModelInsightsDownloadURL(dashboardId = "default"): string {
+  return `${API_BASE}/model-insights/download?dashboard_id=${encodeURIComponent(dashboardId)}`;
+}
 
 
+// =============================================================================
+// PHASE 14: DATA QUALITY TYPES & API
+// =============================================================================
+export interface ColumnQualityAudit {
+  column_name: string;
+  data_type: string;
+  total_records: number;
+  valid_records: number;
+  missing_records: number;
+  missing_percentage: number;
+  unique_count: number;
+  validity_status: string;
+  notes: string;
+}
+
+export interface ETLPipelineAuditStep {
+  step_number: number;
+  step_title: string;
+  input_count: number;
+  output_count: number;
+  filtered_count: number;
+  rule_description: string;
+  business_rationale: string;
+}
+
+export interface ProductCoverageAudit {
+  total_catalog_products: number;
+  eligible_products_count: number;
+  eligible_percentage: number;
+  excluded_products_count: number;
+  excluded_percentage: number;
+  excluded_reason: string;
+  multi_price_elastic_products: number;
+  multi_price_percentage: number;
+  fixed_price_products: number;
+  fixed_price_percentage: number;
+}
+
+export interface MLDataQualityImpact {
+  ml_pipeline_name: string;
+  affected_by: string;
+  mitigation_applied: string;
+  decision_impact: string;
+}
+
+export interface DataQualitySummary {
+  raw_dataset_rows: number;
+  clean_dataset_rows: number;
+  positive_sales_rows: number;
+  cancelled_rows: number;
+  cancellation_rate_pct: number;
+  unique_customers_count: number;
+  unique_products_count: number;
+  date_range_start: string;
+  date_range_end: string;
+  column_audits: ColumnQualityAudit[];
+  etl_pipeline_steps: ETLPipelineAuditStep[];
+  product_coverage: ProductCoverageAudit;
+  ml_impacts: MLDataQualityImpact[];
+}
+
+export async function fetchDataQualitySummary(dashboardId = "default"): Promise<DataQualitySummary> {
+  const res = await fetch(`${API_BASE}/data-quality/summary?dashboard_id=${encodeURIComponent(dashboardId)}`);
+  if (!res.ok) throw new Error("Failed to fetch data quality summary.");
+  return res.json();
+}
+
+export function getDataQualityDownloadURL(dashboardId = "default"): string {
+  return `${API_BASE}/data-quality/download?dashboard_id=${encodeURIComponent(dashboardId)}`;
+}
 

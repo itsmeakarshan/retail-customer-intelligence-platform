@@ -273,20 +273,6 @@ export const InventoryOptimisationPage: React.FC<InventoryOptimisationPageProps>
         </div>
       </div>
 
-      {/* Methodology & Scenario Disclosure Callout */}
-      <div
-        style={{
-          padding: '12px 16px',
-          borderRadius: '8px',
-          background: 'rgba(99, 102, 241, 0.08)',
-          border: '1px solid rgba(99, 102, 241, 0.25)',
-          fontSize: '0.82rem',
-          color: '#C7D2FE',
-          lineHeight: 1.5
-        }}
-      >
-        <strong style={{ color: '#F8FAFC' }}>Methodology Disclosure:</strong> Inventory recommendations and replenishment parameters are mathematically calculated from <strong>actual historical demand and ML forecasts</strong> combined with <strong>scenario inventory inputs</strong> (scenario warehouse stock, supplier lead times, and service levels).
-      </div>
 
       {/* 4 Top KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '16px' }}>
@@ -753,9 +739,9 @@ export const InventoryOptimisationPage: React.FC<InventoryOptimisationPageProps>
                 style={{
                   padding: '12px 16px',
                   borderRadius: '8px',
-                  background: emailStatusMessage.success ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)',
-                  border: `1px solid ${emailStatusMessage.success ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)'}`,
-                  color: emailStatusMessage.success ? '#34D399' : '#F43F5E',
+                  background: emailStatusMessage.success ? 'rgba(16, 185, 129, 0.15)' : 'rgba(236, 72, 153, 0.15)',
+                  border: `1px solid ${emailStatusMessage.success ? 'rgba(16, 185, 129, 0.3)' : 'rgba(236, 72, 153, 0.3)'}`,
+                  color: emailStatusMessage.success ? '#34D399' : '#EC4899',
                   fontSize: '0.85rem',
                   display: 'flex',
                   alignItems: 'center',

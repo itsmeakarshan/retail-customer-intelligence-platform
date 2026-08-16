@@ -18,7 +18,7 @@ load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 from backend.app.api.endpoints import router as api_router
 from backend.app.services.synthetic_generator import init_synthetic_tables
 from backend.app.services.retail_intelligence_service import retail_intelligence_service
-from backend.app.db.database import SessionLocal
+from backend.app.db.database import SessionLocal, init_indexes
 
 app = FastAPI(
     title="Customer Intelligence & Revenue Risk Platform API",
@@ -29,6 +29,7 @@ app = FastAPI(
 @app.on_event("startup")
 def on_startup():
     init_synthetic_tables()
+    init_indexes()
     db = SessionLocal()
     try:
         retail_intelligence_service.warm_up_cache(db=db)

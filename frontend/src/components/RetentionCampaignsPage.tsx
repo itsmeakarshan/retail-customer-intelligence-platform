@@ -285,9 +285,9 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
         <div className="glass-card metric-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 600 }}>Needs Attention</span>
-            <AlertTriangle size={18} color="#EF4444" />
+            <AlertTriangle size={18} color="#EC4899" />
           </div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#EF4444' }}>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#EC4899' }}>
             {summary?.customers_needing_attention.toLocaleString()}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>Accounts showing reduced activity</div>
