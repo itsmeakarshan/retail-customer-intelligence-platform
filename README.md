@@ -63,7 +63,7 @@ graph TD
 
 ## 📓 Interactive Data Science & ML Notebook Suite
 
-The repository includes 13 complete, reproducible Data Science notebooks located in [`notebooks/`](notebooks/) and [`ml/notebooks/`](ml/notebooks/):
+The repository includes 13 complete, reproducible Data Science notebooks located in [`notebooks/`](notebooks/):
 
 1. [`01_dataset_overview.ipynb`](notebooks/01_dataset_overview.ipynb) — Raw vs clean dataset audit, column dictionary, and distribution histograms.
 2. [`02_data_quality_and_cleaning.ipynb`](notebooks/02_data_quality_and_cleaning.ipynb) — 5-step ETL sanitation funnel and missingness analysis.

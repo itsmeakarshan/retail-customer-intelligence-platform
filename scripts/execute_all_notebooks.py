@@ -13,7 +13,6 @@ from nbclient import NotebookClient
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 NOTEBOOKS_DIR = os.path.join(PROJECT_ROOT, "notebooks")
-ML_NOTEBOOKS_DIR = os.path.join(PROJECT_ROOT, "ml", "notebooks")
 
 notebook_files = sorted([f for f in os.listdir(NOTEBOOKS_DIR) if f.endswith(".ipynb")])
 
@@ -25,7 +24,6 @@ results = []
 
 for nb_file in notebook_files:
     nb_path = os.path.join(NOTEBOOKS_DIR, nb_file)
-    ml_nb_path = os.path.join(ML_NOTEBOOKS_DIR, nb_file)
     
     print(f"▶ Executing {nb_file}...")
     start_time = time.time()
@@ -56,10 +54,8 @@ for nb_file in notebook_files:
                 elif o.get("output_type") == "execute_result" and "text/html" in o.get("data", {}):
                     table_count += 1
 
-        # Save populated notebook to notebooks/ and ml/notebooks/
+        # Save populated notebook directly to notebooks/
         with open(nb_path, "w", encoding="utf-8") as f:
-            nbformat.write(executed_nb, f)
-        with open(ml_nb_path, "w", encoding="utf-8") as f:
             nbformat.write(executed_nb, f)
             
         print(f"  ✅ Finished in {elapsed:.2f}s | Code Cells: {len(code_cells)} | Outputs: {total_outputs} | Charts: {chart_count} | Tables: {table_count}\n")

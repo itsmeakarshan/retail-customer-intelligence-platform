@@ -15,9 +15,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 NOTEBOOKS_DIR = os.path.join(PROJECT_ROOT, "notebooks")
-ML_NOTEBOOKS_DIR = os.path.join(PROJECT_ROOT, "ml", "notebooks")
 os.makedirs(NOTEBOOKS_DIR, exist_ok=True)
-os.makedirs(ML_NOTEBOOKS_DIR, exist_ok=True)
 
 class NotebookBuilder:
     def __init__(self, title: str):
@@ -71,13 +69,10 @@ class NotebookBuilder:
             "nbformat_minor": 5
         }
         root_path = os.path.join(NOTEBOOKS_DIR, filename)
-        ml_path = os.path.join(ML_NOTEBOOKS_DIR, filename)
         
         with open(root_path, "w", encoding="utf-8") as f:
             json.dump(nb_json, f, indent=2)
-        with open(ml_path, "w", encoding="utf-8") as f:
-            json.dump(nb_json, f, indent=2)
-        print(f"Saved: {root_path} and {ml_path}")
+        print(f"Saved: {root_path}")
 
 
 # =============================================================================
@@ -1406,4 +1401,4 @@ if __name__ == "__main__":
     build_nb_11()
     build_nb_12()
     build_nb_13()
-    print("All 13 notebooks generated successfully in notebooks/ and ml/notebooks/!")
+    print("All 13 notebooks generated successfully in notebooks/!")
