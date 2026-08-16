@@ -27,12 +27,19 @@ class PriceElasticityEngine:
         Estimates price elasticity of demand for a single product.
         Controls for seasonality (Month) and Day of Week.
         """
-        df_prod = df_transactions[
-            (df_transactions['stock_code'] == stock_code) &
-            (df_transactions['is_cancelled'] == 0) &
-            (df_transactions['quantity'] > 0) &
-            (df_transactions['price'] > 0)
-        ].copy()
+        if 'stock_code' in df_transactions.columns and not (df_transactions['stock_code'] == stock_code).all():
+            df_prod = df_transactions[
+                (df_transactions['stock_code'] == stock_code) &
+                (df_transactions['is_cancelled'] == 0) &
+                (df_transactions['quantity'] > 0) &
+                (df_transactions['price'] > 0)
+            ].copy()
+        else:
+            df_prod = df_transactions[
+                (df_transactions['is_cancelled'] == 0) &
+                (df_transactions['quantity'] > 0) &
+                (df_transactions['price'] > 0)
+            ].copy() if not df_transactions.empty else df_transactions.copy()
 
         sample_size = len(df_prod)
         if sample_size < self.min_samples:

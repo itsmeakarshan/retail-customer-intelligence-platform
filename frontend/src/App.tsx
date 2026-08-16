@@ -68,7 +68,7 @@ export function App() {
         onSelectDashboard={(id) => setActiveDashboardId(id)}
       />
 
-      <main style={{ flex: 1, padding: '24px', maxWidth: '1400px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <main style={{ flex: 1, padding: '8px 0', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
         {activeTab === 'dashboard' && (
           <ExecutiveDashboard
             onNavigateToRisk={() => setActiveTab('risk')}

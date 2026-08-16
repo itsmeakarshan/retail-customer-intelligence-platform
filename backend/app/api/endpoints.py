@@ -769,7 +769,7 @@ def get_retention_summary(
     attn_cnt = db.execute(text(sql_attn)).scalar() or 0
 
     # 2. High Value customers at risk
-    sql_hv_risk = "SELECT COUNT(*), COALESCE(SUM(revenue_at_risk), 0) FROM customers WHERE segment_name = 'High-Value At Risk'"
+    sql_hv_risk = "SELECT COUNT(*), COALESCE(SUM(revenue_at_risk), 0) FROM customers WHERE segment_name IN ('High-Value At Risk', 'At-Risk VIP Customers')"
     hv_row = db.execute(text(sql_hv_risk)).fetchone()
     hv_cnt = hv_row[0] if hv_row else 0
 
@@ -869,8 +869,8 @@ def get_recommended_campaigns(
                 }
             ]
 
-    # Campaign 1: High-Value At Risk
-    sql_hv = "SELECT COUNT(*), COALESCE(SUM(revenue_at_risk), 0), COALESCE(SUM(predicted_future_value), 0) FROM customers WHERE segment_name = 'High-Value At Risk'"
+    # Campaign 1: At-Risk VIP Customers
+    sql_hv = "SELECT COUNT(*), COALESCE(SUM(revenue_at_risk), 0), COALESCE(SUM(predicted_future_value), 0) FROM customers WHERE segment_name IN ('High-Value At Risk', 'At-Risk VIP Customers')"
     hv_row = db.execute(text(sql_hv)).fetchone()
     hv_cnt = hv_row[0] if hv_row else 703
     hv_risk = float(hv_row[1]) if hv_row else 142079.85
@@ -1855,11 +1855,12 @@ def get_forecasting_products(
 @router.get("/forecasting/product/{stock_code}", response_model=schemas.ProductDemandDetailResponse)
 def get_forecasting_product_detail(
     stock_code: str,
+    days: Optional[int] = Query(30, description="Forecast horizon in days (e.g. 30 or 90)"),
     dashboard_id: Optional[str] = Query("default", description="Dashboard session ID"),
     db: Session = Depends(get_db)
 ):
     session_dir = os.path.join(csv_processor.UPLOADS_DIR, dashboard_id) if dashboard_id and dashboard_id != "default" else None
-    detail = retail_intelligence_service.get_product_demand_detail(stock_code, db=db, session_dir=session_dir)
+    detail = retail_intelligence_service.get_product_demand_detail(stock_code, horizon_days=days or 30, db=db, session_dir=session_dir)
     if not detail:
         raise HTTPException(status_code=404, detail=f"Product '{stock_code}' not found in active transaction history.")
     return detail
@@ -1893,22 +1894,20 @@ def get_inventory_summary(
 @router.get("/inventory/recommendations", response_model=List[schemas.InventoryItem])
 def get_inventory_recommendations(
     dashboard_id: Optional[str] = Query("default", description="Dashboard session ID"),
-    status: Optional[str] = Query(None, description="Filter by status: 'Replenishment Needed', 'Excess Stock', 'Healthy', 'Expiring'"),
+    status: Optional[str] = Query(None, description="Filter by status: 'Replenishment Needed', 'Excess Stock', 'Healthy', 'Expiring', 'Insufficient'"),
     search: Optional[str] = Query(None),
-    limit: int = Query(100, ge=1, le=500),
+    limit: Optional[int] = Query(None, ge=0, description="Max items to return (omit or 0 for all analysed products)"),
     db: Session = Depends(get_db)
 ):
     session_dir = os.path.join(csv_processor.UPLOADS_DIR, dashboard_id) if dashboard_id and dashboard_id != "default" else None
-    items = retail_intelligence_service.get_inventory_recommendations(db=db, session_dir=session_dir, limit=limit)
-    if search:
-        s_lower = search.lower()
-        items = [i for i in items if s_lower in i['stock_code'].lower() or s_lower in i['description'].lower()]
-    if status:
-        if status.lower() == 'expiring':
-            items = [i for i in items if i.get('expiry_risk_alert') is not None]
-        else:
-            items = [i for i in items if i['status'].lower() == status.lower()]
-    return items
+    return retail_intelligence_service.get_inventory_recommendations(
+        db=db,
+        session_dir=session_dir,
+        limit=limit or 0,
+        search=search,
+        status=status,
+        include_excluded=False
+    )
 
 @router.post("/inventory/simulate", response_model=schemas.InventorySimulationResponse)
 def simulate_inventory(
@@ -1929,13 +1928,44 @@ def simulate_inventory(
         session_dir=session_dir
     )
 
+@router.get("/inventory/export-excel")
+def export_inventory_excel(
+    dashboard_id: Optional[str] = Query("default"),
+    db: Session = Depends(get_db)
+):
+    session_dir = os.path.join(csv_processor.UPLOADS_DIR, dashboard_id) if dashboard_id and dashboard_id != "default" else None
+    excel_bytes = retail_intelligence_service.generate_inventory_excel_workbook(db=db, session_dir=session_dir)
+    filename = f"Retail_Inventory_Replenishment_Report_{dashboard_id}.xlsx"
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+@router.post("/inventory/email-report")
+def email_inventory_report(
+    req: schemas.InventoryEmailReportRequest,
+    dashboard_id: Optional[str] = Query("default"),
+    db: Session = Depends(get_db)
+):
+    session_dir = os.path.join(csv_processor.UPLOADS_DIR, dashboard_id) if dashboard_id and dashboard_id != "default" else None
+    excel_bytes = retail_intelligence_service.generate_inventory_excel_workbook(db=db, session_dir=session_dir)
+    filename = f"Retail_Inventory_Replenishment_Report_{dashboard_id}.xlsx"
+    return email_service.send_inventory_report_email(
+        excel_bytes=excel_bytes,
+        filename=filename,
+        recipient_email=req.recipient_email,
+        subject=req.subject or "Retail Inventory Replenishment Report",
+        message_text=req.message or "Please find attached the latest inventory replenishment report, including forecast demand, stock requirements, reorder points and recommended order quantities."
+    )
+
 @router.get("/inventory/download")
 def download_inventory_csv(
     dashboard_id: Optional[str] = Query("default"),
     db: Session = Depends(get_db)
 ):
     session_dir = os.path.join(csv_processor.UPLOADS_DIR, dashboard_id) if dashboard_id and dashboard_id != "default" else None
-    items = retail_intelligence_service.get_inventory_recommendations(db=db, session_dir=session_dir, limit=300)
+    items = retail_intelligence_service.get_inventory_recommendations(db=db, session_dir=session_dir, limit=0)
     flat_items = []
     for item in items:
         flat_items.append({

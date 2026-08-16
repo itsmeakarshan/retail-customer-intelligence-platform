@@ -58,36 +58,38 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
   const [monitoringSummary, setMonitoringSummary] = useState<MonitoringSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const [hoveredHealthIndex, setHoveredHealthIndex] = useState<number | null>(null);
+  const [hoveredSegIndex, setHoveredSegIndex] = useState<number | null>(null);
+  const [hoveredTrend, setHoveredTrend] = useState<{ month: string; revenue: number; x: number; y: number } | null>(null);
 
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        const [sum, risk, custResp, segResp, scatterResp, trendResp, demSum, invSum, prSum, monSum] = await Promise.all([
+        // Fetch core dashboard metrics first for instantaneous render
+        const [sum, risk, custResp, segResp, scatterResp, trendResp] = await Promise.all([
           fetchSummary(activeDashboardId),
           fetchRevenueRisk(activeDashboardId),
           fetchCustomers({ page: 1, limit: 10, sort_by: 'revenue_at_risk', order: 'desc', dashboard_id: activeDashboardId }),
           fetchSegments(activeDashboardId),
           fetchCustomers({ page: 1, limit: 50, sort_by: 'monetary', order: 'desc', dashboard_id: activeDashboardId }),
-          fetchMonthlyTrends(activeDashboardId),
-          fetchDemandSummary(activeDashboardId).catch(() => null),
-          fetchInventorySummary(activeDashboardId).catch(() => null),
-          fetchPricingSummary(activeDashboardId).catch(() => null),
-          fetchMonitoringSummary(activeDashboardId).catch(() => null)
+          fetchMonthlyTrends(activeDashboardId)
         ]);
-        setSummary(sum);
-        setRiskData(risk);
-        setTopCustomers(custResp.customers);
-        setSegments(segResp);
-        setScatterCustomers(scatterResp.customers);
-        setMonthlyTrends(trendResp);
-        setDemandSummary(demSum);
-        setInventorySummary(invSum);
-        setPricingSummary(prSum);
-        setMonitoringSummary(monSum);
+        setSummary(sum || null);
+        setRiskData(risk || null);
+        setTopCustomers(custResp?.customers || []);
+        setSegments(segResp || []);
+        setScatterCustomers(scatterResp?.customers || []);
+        setMonthlyTrends(trendResp || []);
+        setLoading(false);
+
+        // Asynchronously fetch secondary widget summaries without blocking dashboard render
+        fetchDemandSummary(activeDashboardId).then(setDemandSummary).catch(() => null);
+        fetchInventorySummary(activeDashboardId).then(setInventorySummary).catch(() => null);
+        fetchPricingSummary(activeDashboardId).then(setPricingSummary).catch(() => null);
+        fetchMonitoringSummary(activeDashboardId).then(setMonitoringSummary).catch(() => null);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
-      } finally {
         setLoading(false);
       }
     }
@@ -112,31 +114,111 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
   const medPct = (medRiskVal / totalCust);
   const highPct = (highRiskVal / totalCust);
 
-  // Line chart path generation
+  // Donut Arc Calculations for Customer Health Breakdown & Customer Segments
+  const donutR = 75;
+  const circumference = 2 * Math.PI * donutR;
+  const gapPx = 14;
+
+  const healthItems = [
+    { name: 'High Risk (>70%)', value: highRiskVal, pct: highPct, color: '#EC4899' },
+    { name: 'Needs Attention (40-70%)', value: medRiskVal, pct: medPct, color: '#F97316' },
+    { name: 'Low Risk (<40%)', value: lowRiskVal, pct: lowPct, color: '#06B6D4' }
+  ];
+
+  const totalGap = healthItems.length * gapPx;
+  const availableCircumference = Math.max(0, circumference - totalGap);
+
+  let currentOffset = 0;
+  const healthSegmentsData = healthItems.map(item => {
+    const rawLen = item.pct * availableCircumference;
+    const dashLength = Math.max(1, rawLen);
+    const offset = currentOffset;
+    currentOffset += dashLength + gapPx;
+    return {
+      ...item,
+      pctDisplay: (item.pct * 100).toFixed(1),
+      dashLength,
+      offset
+    };
+  });
+
+  // Donut Arc Calculations for Customer Groups ("Who Are My Customers?")
+  const segmentColors = ['#EC4899', '#06B6D4', '#F59E0B', '#8B5CF6', '#3B82F6', '#10B981'];
+  const totalSegmentCust = (segments || []).reduce((sum, s) => sum + s.customer_count, 0) || 1;
+  const segGapPx = 10;
+  const totalSegGap = (segments || []).length * segGapPx;
+  const availSegCircumference = Math.max(0, circumference - totalSegGap);
+
+  let currentSegOffset = 0;
+  const styledSegmentsData = (segments || []).map((seg, i) => {
+    const pct = seg.customer_count / totalSegmentCust;
+    const rawLen = pct * availSegCircumference;
+    const dashLength = Math.max(1, rawLen);
+    const offset = currentSegOffset;
+    currentSegOffset += dashLength + segGapPx;
+    return {
+      name: seg.segment_name,
+      value: seg.customer_count,
+      pctDisplay: (pct * 100).toFixed(1),
+      dashLength,
+      offset,
+      color: segmentColors[i % segmentColors.length]
+    };
+  });
+
+  // Aesthetic smooth line chart path generation
   const maxRevenue = monthlyTrends.length > 0 ? Math.max(...monthlyTrends.map(t => t.revenue)) : 1;
   const minRevenue = monthlyTrends.length > 0 ? Math.min(...monthlyTrends.map(t => t.revenue)) : 0;
-  const chartHeight = 200;
-  const chartWidth = 800;
-  
-  const getPath = () => {
-    if (monthlyTrends.length === 0) return '';
-    const points = monthlyTrends.map((t, i) => {
-      const x = (i / (monthlyTrends.length - 1)) * chartWidth;
-      const y = chartHeight - ((t.revenue - minRevenue * 0.8) / (maxRevenue - minRevenue * 0.8)) * chartHeight;
-      return `${x},${y}`;
-    });
-    return `M ${points.join(' L ')}`;
+  const chartHeight = 150;
+  const chartWidth = 1000;
+  const chartPadding = { top: 20, right: 30, bottom: 35, left: 30 };
+
+  const getTrendX = (i: number) => {
+    if (monthlyTrends.length <= 1) return chartPadding.left;
+    return chartPadding.left + (i / (monthlyTrends.length - 1)) * (chartWidth - chartPadding.left - chartPadding.right);
   };
 
-  const getArea = () => {
+  const getTrendY = (val: number) => {
+    const usableH = chartHeight - chartPadding.top - chartPadding.bottom;
+    const minVal = minRevenue * 0.8;
+    const range = maxRevenue - minVal || 1;
+    return chartHeight - chartPadding.bottom - ((val - minVal) / range) * usableH;
+  };
+
+  const getSmoothPath = () => {
     if (monthlyTrends.length === 0) return '';
-    const path = getPath();
-    return `${path} L ${chartWidth},${chartHeight} L 0,${chartHeight} Z`;
+    const pts = monthlyTrends.map((t, i) => ({ x: getTrendX(i), y: getTrendY(t.revenue) }));
+    if (pts.length === 1) return `M ${pts[0].x},${pts[0].y}`;
+
+    let d = `M ${pts[0].x},${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(pts.length - 1, i + 2)];
+
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+      d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+    }
+    return d;
+  };
+
+  const getSmoothArea = () => {
+    if (monthlyTrends.length === 0) return '';
+    const path = getSmoothPath();
+    const firstX = getTrendX(0);
+    const lastX = getTrendX(monthlyTrends.length - 1);
+    const bottomY = chartHeight - chartPadding.bottom;
+    return `${path} L ${lastX},${bottomY} L ${firstX},${bottomY} Z`;
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
       {/* SECTION 0: Business Recommendation Card */}
       <RecommendedActionCard
         title="Portfolio At-Risk Revenue Overview"
@@ -148,7 +230,7 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
         onActionClick={() => onNavigateTab('risk')}
         type="danger"
       />
-      
+
       {/* SECTION 1: 5 KPI Cards */}
       <div className="grid-5" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px' }}>
         <div className="glass-card kpi-card">
@@ -207,88 +289,309 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
         </div>
       </div>
 
-      {/* SECTION 2: Customer Health Breakdown & Customer Groups */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-        
-        {/* Left: Customer Health Breakdown (Donut SVG) */}
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '4px' }}>How Healthy Are My Customers?</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)', marginBottom: '20px' }}>Customers grouped by their likelihood of stopping purchases.</p>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', width: '150px', height: '150px' }}>
-              <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
-                <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3.8" />
-                <circle className="donut-slice" cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-rose, #EF4444)" strokeWidth="3.8"
-                  strokeDasharray={`${highPct * 100} ${100 - highPct * 100}`} strokeDashoffset="0">
-                  <title>{`High Risk: ${highRiskVal.toLocaleString()} (${(highPct * 100).toFixed(1)}%)`}</title>
-                </circle>
-                <circle className="donut-slice" cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-amber, #F59E0B)" strokeWidth="3.8"
-                  strokeDasharray={`${medPct * 100} ${100 - medPct * 100}`} strokeDashoffset={`${-highPct * 100}`}>
-                  <title>{`Needs Attention: ${medRiskVal.toLocaleString()} (${(medPct * 100).toFixed(1)}%)`}</title>
-                </circle>
-                <circle className="donut-slice" cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-emerald, #10B981)" strokeWidth="3.8"
-                  strokeDasharray={`${lowPct * 100} ${100 - lowPct * 100}`} strokeDashoffset={`${-(highPct + medPct) * 100}`}>
-                  <title>{`Low Risk: ${lowRiskVal.toLocaleString()} (${(lowPct * 100).toFixed(1)}%)`}</title>
-                </circle>
+      {/* SECTION 2: Customer Health Breakdown & Customer Groups (Styled Donut Charts matching user image) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+
+        {/* Left: Customer Health Breakdown (Styled Donut Chart matching picture) */}
+        <div className="glass-card" style={{ padding: '24px', borderRadius: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#F8FAFC', margin: 0 }}>
+                How Healthy Are My Customers?
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)', margin: '4px 0 0 0' }}>
+                Customers grouped by their likelihood of stopping purchases.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
+            {/* Donut Canvas */}
+            <div style={{ position: 'relative', width: '190px', height: '190px', flexShrink: 0, margin: '0 auto' }}>
+              <svg viewBox="0 0 220 220" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)', overflow: 'visible' }}>
+                <circle cx="110" cy="110" r="75" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="14" />
+                {healthSegmentsData.map((seg, i) => (
+                  <circle
+                    key={i}
+                    cx="110"
+                    cy="110"
+                    r="75"
+                    fill="none"
+                    stroke={seg.color}
+                    strokeWidth={hoveredHealthIndex === i ? "18" : "14"}
+                    strokeLinecap="round"
+                    strokeDasharray={`${seg.dashLength} ${circumference - seg.dashLength}`}
+                    strokeDashoffset={-seg.offset}
+                    style={{
+                      cursor: 'pointer',
+                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                      filter: hoveredHealthIndex === i ? `drop-shadow(0 0 12px ${seg.color})` : 'none'
+                    }}
+                    onMouseEnter={() => setHoveredHealthIndex(i)}
+                    onMouseLeave={() => setHoveredHealthIndex(null)}
+                    onClick={() => onNavigateTab('risk')}
+                  />
+                ))}
               </svg>
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', pointerEvents: 'none' }}>
-                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main, #F8FAFC)' }}>{totalCust.toLocaleString()}</span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Accounts</span>
+
+              {/* Center Donut Label */}
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                pointerEvents: 'none'
+              }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted, #94A3B8)' }}>
+                  Accounts
+                </span>
+                <span style={{ fontSize: '1.85rem', fontWeight: 900, color: '#F8FAFC', letterSpacing: '-0.02em', marginTop: '2px' }}>
+                  {totalCust.toLocaleString()}
+                </span>
+              </div>
+
+              {/* Floating Dark Tooltip Box (styled exactly like user image) */}
+              {hoveredHealthIndex !== null && (
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '100%',
+                  transform: 'translate(10px, -50%)',
+                  background: '#0F172A',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  color: '#F8FAFC',
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.7), 0 0 20px rgba(99,102,241,0.25)',
+                  zIndex: 30,
+                  pointerEvents: 'none',
+                  whiteSpace: 'nowrap'
+                }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: healthSegmentsData[hoveredHealthIndex].color }}>
+                    {healthSegmentsData[hoveredHealthIndex].name}
+                  </div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', marginTop: '2px' }}>
+                    {healthSegmentsData[hoveredHealthIndex].value.toLocaleString()} <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 400 }}>({healthSegmentsData[hoveredHealthIndex].pctDisplay}%)</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Legend Items */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, minWidth: '160px' }}>
+              {healthSegmentsData.map((seg, i) => (
+                <div
+                  key={i}
+                  onMouseEnter={() => setHoveredHealthIndex(i)}
+                  onMouseLeave={() => setHoveredHealthIndex(null)}
+                  onClick={() => onNavigateTab('risk')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    background: hoveredHealthIndex === i ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: seg.color, boxShadow: `0 0 6px ${seg.color}` }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main, #F8FAFC)' }}>
+                      {seg.name}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.88rem', fontWeight: 800, color: seg.color }}>
+                    {seg.value.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom Summary Stats Split into 2 Columns with Vertical Divider */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            paddingTop: '16px',
+            marginTop: '16px'
+          }}>
+            <div style={{ textAlign: 'center', paddingRight: '12px' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#EC4899' }}>
+                &pound;{(summary.total_company_may_lose_30d || 0).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #94A3B8)', marginTop: '2px', fontWeight: 500 }}>
+                Revenue Exposure at Risk
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
-              <div onClick={() => onNavigateTab('risk')} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '8px', cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-rose, #EF4444)' }} />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main, #F8FAFC)' }}>High Risk (&gt;70%)</span>
-                </div>
-                <span style={{ fontWeight: 700, color: 'var(--color-rose, #EF4444)' }}>{highRiskVal.toLocaleString()} ({(highPct * 100).toFixed(1)}%)</span>
+            <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255, 255, 255, 0.08)', paddingLeft: '12px' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#38BDF8' }}>
+                {highRiskVal.toLocaleString()}+
               </div>
-
-              <div onClick={() => onNavigateTab('risk')} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '8px', cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-amber, #F59E0B)' }} />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main, #F8FAFC)' }}>Needs Attention (40-70%)</span>
-                </div>
-                <span style={{ fontWeight: 700, color: 'var(--color-amber, #F59E0B)' }}>{medRiskVal.toLocaleString()} ({(medPct * 100).toFixed(1)}%)</span>
-              </div>
-
-              <div onClick={() => onNavigateTab('risk')} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-emerald, #10B981)' }} />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-main, #F8FAFC)' }}>Low Risk (&lt;40%)</span>
-                </div>
-                <span style={{ fontWeight: 700, color: 'var(--color-emerald, #10B981)' }}>{lowRiskVal.toLocaleString()} ({(lowPct * 100).toFixed(1)}%)</span>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #94A3B8)', marginTop: '2px', fontWeight: 500 }}>
+                High Priority Accounts
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right: Who Are My Customers? (Horizontal Bar Chart) */}
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '4px' }}>Who Are My Customers?</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)', marginBottom: '20px' }}>Number of active accounts in each customer group.</p>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {segments.map((seg) => {
-              const maxCount = segments.length > 0 ? Math.max(...segments.map(s => s.customer_count)) : 1;
-              const pct = (seg.customer_count / maxCount) * 100;
-              return (
-                <div key={seg.segment_name} onClick={() => onNavigateTab('segmentation')} style={{ cursor: 'pointer' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 500, color: 'var(--text-main, #F8FAFC)' }}>{seg.segment_name}</span>
-                    <span style={{ fontWeight: 600, color: 'var(--primary-accent, #6366F1)' }}>{seg.customer_count.toLocaleString()} customers</span>
+        {/* Right: Who Are My Customers? (Styled Donut Chart matching user image) */}
+        <div className="glass-card" style={{ padding: '24px', borderRadius: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#F8FAFC', margin: 0 }}>
+                Who Are My Customers?
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)', margin: '4px 0 0 0' }}>
+                Customer distribution across business segments.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
+            {/* Donut Canvas */}
+            <div style={{ position: 'relative', width: '190px', height: '190px', flexShrink: 0, margin: '0 auto' }}>
+              <svg viewBox="0 0 220 220" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)', overflow: 'visible' }}>
+                <circle cx="110" cy="110" r="75" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="14" />
+                {styledSegmentsData.map((seg, i) => (
+                  <circle
+                    key={i}
+                    cx="110"
+                    cy="110"
+                    r="75"
+                    fill="none"
+                    stroke={seg.color}
+                    strokeWidth={hoveredSegIndex === i ? "18" : "14"}
+                    strokeLinecap="round"
+                    strokeDasharray={`${seg.dashLength} ${circumference - seg.dashLength}`}
+                    strokeDashoffset={-seg.offset}
+                    style={{
+                      cursor: 'pointer',
+                      transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                      filter: hoveredSegIndex === i ? `drop-shadow(0 0 12px ${seg.color})` : 'none'
+                    }}
+                    onMouseEnter={() => setHoveredSegIndex(i)}
+                    onMouseLeave={() => setHoveredSegIndex(null)}
+                    onClick={() => onNavigateTab('segmentation')}
+                  />
+                ))}
+              </svg>
+
+              {/* Center Donut Label */}
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                pointerEvents: 'none'
+              }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted, #94A3B8)' }}>
+                  Groups
+                </span>
+                <span style={{ fontSize: '1.85rem', fontWeight: 900, color: '#F8FAFC', letterSpacing: '-0.02em', marginTop: '2px' }}>
+                  {segments.length}
+                </span>
+              </div>
+
+              {/* Floating Dark Tooltip Box (styled exactly like user image) */}
+              {hoveredSegIndex !== null && styledSegmentsData[hoveredSegIndex] && (
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '100%',
+                  transform: 'translate(10px, -50%)',
+                  background: '#0F172A',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '12px',
+                  padding: '10px 14px',
+                  color: '#F8FAFC',
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.7), 0 0 20px rgba(99,102,241,0.25)',
+                  zIndex: 30,
+                  pointerEvents: 'none',
+                  whiteSpace: 'nowrap'
+                }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: styledSegmentsData[hoveredSegIndex].color }}>
+                    {styledSegmentsData[hoveredSegIndex].name}
                   </div>
-                  <div style={{ height: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, #4F46E5, #818CF8)', borderRadius: '4px' }} />
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', marginTop: '2px' }}>
+                    {styledSegmentsData[hoveredSegIndex].value.toLocaleString()} <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 400 }}>({styledSegmentsData[hoveredSegIndex].pctDisplay}%)</span>
                   </div>
                 </div>
-              );
-            })}
+              )}
+            </div>
+
+            {/* Right Legend Items */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '160px' }}>
+              {styledSegmentsData.map((seg, i) => (
+                <div
+                  key={i}
+                  onMouseEnter={() => setHoveredSegIndex(i)}
+                  onMouseLeave={() => setHoveredSegIndex(null)}
+                  onClick={() => onNavigateTab('segmentation')}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    background: hoveredSegIndex === i ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: seg.color, boxShadow: `0 0 6px ${seg.color}` }} />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main, #F8FAFC)' }}>
+                      {seg.name}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: seg.color }}>
+                    {seg.value.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom Summary Stats Split into 2 Columns with Vertical Divider */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            paddingTop: '16px',
+            marginTop: '16px'
+          }}>
+            <div style={{ textAlign: 'center', paddingRight: '12px' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#818CF8' }}>
+                {totalCust.toLocaleString()}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #94A3B8)', marginTop: '2px', fontWeight: 500 }}>
+                Total Active Accounts
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255, 255, 255, 0.08)', paddingLeft: '12px' }}>
+              <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#F59E0B' }}>
+                {segments.length} Segment Groups
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #94A3B8)', marginTop: '2px', fontWeight: 500 }}>
+                Classified by Behavior
+              </div>
+            </div>
           </div>
         </div>
+
       </div>
 
       {/* SECTION 3: Revenue at Risk by Group & Customer Risk vs Value Scatter */}
@@ -297,10 +600,11 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
         <div className="glass-card" style={{ padding: '24px' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '4px' }}>Company May Lose by Customer Group</h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)', marginBottom: '20px' }}>Estimated 30-day revenue loss broken down by customer group.</p>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {riskData?.by_segment.sort((a,b) => b.company_may_lose_30d - a.company_may_lose_30d).map((seg) => {
-              const maxRev = riskData.by_segment.length > 0 ? Math.max(...riskData.by_segment.map(s => s.company_may_lose_30d)) : 1;
+            {(riskData?.by_segment ? [...riskData.by_segment].sort((a, b) => b.company_may_lose_30d - a.company_may_lose_30d) : []).map((seg) => {
+              const segList = riskData?.by_segment || [];
+              const maxRev = segList.length > 0 ? Math.max(...segList.map(s => s.company_may_lose_30d)) : 1;
               const pct = (seg.company_may_lose_30d / maxRev) * 100;
               return (
                 <div key={seg.segment_name} onClick={() => onNavigateTab('revenue')} style={{ cursor: 'pointer' }}>
@@ -346,8 +650,8 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
             </div>
 
             {/* Scatter Dots */}
-            {scatterCustomers.slice(0, 50).map((c) => {
-              const maxMon = scatterCustomers.length > 0 ? Math.max(...scatterCustomers.map(sc => sc.gross_revenue)) : 10000;
+            {(scatterCustomers || []).slice(0, 50).map((c) => {
+              const maxMon = (scatterCustomers || []).length > 0 ? Math.max(...scatterCustomers.map(sc => sc.gross_revenue)) : 10000;
               const xPct = Math.min(Math.max((c.gross_revenue / maxMon) * 100, 5), 95);
               const yPct = Math.min(Math.max((1 - c.churn_probability) * 100, 5), 95);
               const dotColor = c.churn_probability >= 0.7 ? 'var(--color-rose, #EF4444)' : c.churn_probability >= 0.4 ? 'var(--color-amber, #F59E0B)' : 'var(--color-emerald, #10B981)';
@@ -379,40 +683,149 @@ export const ExecutiveDashboard: React.FC<DashboardProps> = ({ onNavigateToRisk,
 
       {/* SECTION 4: Monthly Revenue Trend Line Chart */}
       <div className="glass-card" style={{ padding: '24px' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '4px' }}>Revenue Over Time</h3>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)', marginBottom: '20px' }}>Monthly revenue performance across your store.</p>
-        
-        <div style={{ position: 'relative', width: '100%', height: '240px', background: 'rgba(0,0,0,0.1)', borderRadius: '8px', padding: '20px 0 30px' }}>
-          <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0, color: '#F8FAFC' }}>Revenue Over Time</h3>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted, #94A3B8)', margin: '2px 0 0 0' }}>Monthly store revenue performance trajectory.</p>
+          </div>
+          {hoveredTrend && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(129, 140, 248, 0.1)', padding: '4px 12px', borderRadius: '6px', border: '1px solid rgba(129, 140, 248, 0.2)' }}>
+              <span style={{ fontSize: '0.78rem', color: '#94A3B8', fontWeight: 500 }}>{hoveredTrend.month}:</span>
+              <strong style={{ fontSize: '0.9rem', color: '#818CF8', fontWeight: 700 }}>&pound;{hoveredTrend.revenue.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</strong>
+            </div>
+          )}
+        </div>
+
+        <div style={{
+          position: 'relative',
+          width: '100%',
+          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderRadius: '12px',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          boxShadow: 'inset 0 1px 1px 0 rgba(255, 255, 255, 0.1), 0 8px 32px 0 rgba(0, 0, 0, 0.25)',
+          padding: '16px 8px',
+          overflow: 'hidden'
+        }}>
+          <svg
+            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+            style={{ width: '100%', height: 'auto', display: 'block' }}
+            onMouseLeave={() => setHoveredTrend(null)}
+            onMouseMove={(e) => {
+              if (monthlyTrends.length === 0) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              const mouseX = e.clientX - rect.left;
+              const usableWidth = rect.width * ((chartWidth - chartPadding.left - chartPadding.right) / chartWidth);
+              const startX = rect.width * (chartPadding.left / chartWidth);
+              const pct = Math.max(0, Math.min(1, (mouseX - startX) / usableWidth));
+              const nearestIdx = Math.round(pct * (monthlyTrends.length - 1));
+              const item = monthlyTrends[nearestIdx];
+              if (item) {
+                setHoveredTrend({
+                  month: item.month,
+                  revenue: item.revenue,
+                  x: getTrendX(nearestIdx),
+                  y: getTrendY(item.revenue)
+                });
+              }
+            }}
+          >
             <defs>
               <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--primary-accent, #6366F1)" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="var(--primary-accent, #6366F1)" stopOpacity="0" />
+                <stop offset="0%" stopColor="#818CF8" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="#818CF8" stopOpacity="0.0" />
               </linearGradient>
             </defs>
-            <path d={getArea()} fill="url(#revenueGradient)" />
-            <path d={getPath()} fill="none" stroke="var(--primary-accent, #6366F1)" strokeWidth="3" strokeLinejoin="round" />
-            
-            {monthlyTrends.map((t, i) => {
-              const x = (i / (monthlyTrends.length - 1)) * chartWidth;
-              const y = chartHeight - ((t.revenue - minRevenue * 0.8) / (maxRevenue - minRevenue * 0.8)) * chartHeight;
-              
-              // Only show every 3rd month label
-              const showLabel = i % 3 === 0;
+
+            {/* Horizontal Gridlines */}
+            {[0, 0.33, 0.66, 1].map((frac, idx) => {
+              const y = chartHeight - chartPadding.bottom - frac * (chartHeight - chartPadding.top - chartPadding.bottom);
               return (
-                <g key={i}>
-                  <circle cx={x} cy={y} r="4" fill="var(--bg-dark, #0B0F17)" stroke="var(--primary-accent, #6366F1)" strokeWidth="2" style={{ cursor: 'pointer' }}>
-                    <title>{`${t.month}: £${t.revenue.toLocaleString('en-GB')}`}</title>
-                  </circle>
-                  {showLabel && (
-                    <text x={x} y={chartHeight + 20} fill="var(--text-dim, #64748B)" fontSize="12" textAnchor="middle">
-                      {t.month}
-                    </text>
-                  )}
-                </g>
+                <line key={idx} x1={chartPadding.left} y1={y} x2={chartWidth - chartPadding.right} y2={y} stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
+              );
+            })}
+
+            {/* Hover Guideline */}
+            {hoveredTrend && (
+              <line
+                x1={hoveredTrend.x}
+                y1={chartPadding.top}
+                x2={hoveredTrend.x}
+                y2={chartHeight - chartPadding.bottom}
+                stroke="rgba(129, 140, 248, 0.4)"
+                strokeDasharray="3 3"
+                strokeWidth="1.2"
+              />
+            )}
+
+            {/* Smooth Filled Gradient Area */}
+            <path d={getSmoothArea()} fill="url(#revenueGradient)" />
+
+            {/* Thin Aesthetic Smooth Line (No motapa!) */}
+            <path d={getSmoothPath()} fill="none" stroke="#818CF8" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+
+            {/* Single Hover Dot (No static dots!) */}
+            {hoveredTrend && (
+              <circle
+                cx={hoveredTrend.x}
+                cy={hoveredTrend.y}
+                r="5"
+                fill="#818CF8"
+                stroke="#FFFFFF"
+                strokeWidth="2"
+                style={{ filter: 'drop-shadow(0 0 6px rgba(129, 140, 248, 0.8))' }}
+              />
+            )}
+
+            {/* X-Axis Month Labels */}
+            {monthlyTrends.map((t, i) => {
+              const x = getTrendX(i);
+              const isHovered = hoveredTrend?.month === t.month;
+              const showLabel = i % 3 === 0 || i === monthlyTrends.length - 1;
+
+              if (!showLabel && !isHovered) return null;
+
+              return (
+                <text
+                  key={i}
+                  x={x}
+                  y={chartHeight - 10}
+                  fill={isHovered ? '#F8FAFC' : 'var(--text-dim, #64748B)'}
+                  fontSize="11"
+                  fontWeight={isHovered ? 700 : 400}
+                  textAnchor="middle"
+                >
+                  {t.month}
+                </text>
               );
             })}
           </svg>
+
+          {/* Floating Hover Card */}
+          {hoveredTrend && (
+            <div
+              style={{
+                position: 'absolute',
+                left: `${(hoveredTrend.x / chartWidth) * 100}%`,
+                top: `${(hoveredTrend.y / chartHeight) * 100}%`,
+                transform: 'translate(-50%, -125%)',
+                background: 'rgba(15, 23, 42, 0.95)',
+                border: '1px solid rgba(129, 140, 248, 0.4)',
+                borderRadius: '8px',
+                padding: '6px 12px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                pointerEvents: 'none',
+                zIndex: 10,
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <div style={{ fontSize: '0.72rem', color: '#94A3B8', fontWeight: 600 }}>{hoveredTrend.month}</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#818CF8', marginTop: '1px' }}>
+                &pound;{hoveredTrend.revenue.toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

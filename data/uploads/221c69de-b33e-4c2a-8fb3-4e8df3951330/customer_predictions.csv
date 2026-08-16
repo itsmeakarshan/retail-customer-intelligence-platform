@@ -1,0 +1,4 @@
+customer_id,country,recency,frequency,monetary,churn_probability,predicted_future_value,expected_30d_revenue,revenue_at_risk,company_may_lose_30d,segment_name
+13047,United Kingdom,35,1,54.08,0.7545,91.72,30.57,69.2,23.07,Active Customers
+14527,United Kingdom,35,0,0.0,0.8733,173.63,57.88,151.63,50.54,Active Customers
+17850,United Kingdom,0,2,61.14,0.2961,2787.53,929.18,825.39,275.13,Active Customers

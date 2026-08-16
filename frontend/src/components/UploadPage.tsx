@@ -38,7 +38,7 @@ export const UploadPage: React.FC = () => {
   const [validationReport, setValidationReport] = useState<CSVValidationReport | null>(null);
   const [results, setResults] = useState<UploadSessionResults | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  
+
   // Theme & Tab State
   const [excelTheme, setExcelTheme] = useState<ExcelTheme>('EMERALD');
   const [templateTab, setTemplateTab] = useState<'DATA' | 'SCHEMA'>('DATA');
@@ -189,7 +189,7 @@ export const UploadPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      
+
       {/* Page Title & Main Banner */}
       <div className="glass-card" style={{ padding: '24px 28px', borderLeft: `4px solid ${currentTheme.accent}`, background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(18, 24, 38, 0.8))' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
@@ -232,10 +232,10 @@ export const UploadPage: React.FC = () => {
       {/* BEAUTIFUL VISUAL REPRESENTATION OF THE EXCEL TEMPLATE IN-APP */}
       {step === 'IDLE' && (
         <div className="glass-card" style={{ padding: '0', borderRadius: '16px', border: `1px solid ${currentTheme.border}`, overflow: 'hidden', background: '#0B0F17', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
-          
+
           {/* Excel Application Title & Toolbar Bar */}
           <div style={{ background: currentTheme.topBarBg, padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap', gap: '12px' }}>
-            
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ background: currentTheme.accent, color: '#FFF', padding: '5px 10px', borderRadius: '6px', fontWeight: 800, fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Table size={15} /> MICROSOFT EXCEL
@@ -408,7 +408,7 @@ export const UploadPage: React.FC = () => {
 
           {/* Excel Application Footer & Status Bar */}
           <div style={{ background: currentTheme.topBarBg, padding: '10px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', fontSize: '0.76rem', color: '#94A3B8', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-            
+
             {/* Sheet Tabs Bar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <button
@@ -497,7 +497,7 @@ export const UploadPage: React.FC = () => {
           <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 8px 0', color: '#F8FAFC' }}>
             Drag &amp; Drop your Excel (.xlsx) or CSV (.csv) File Here
           </h3>
-          
+
           <p style={{ color: '#94A3B8', fontSize: '0.88rem', maxWidth: '540px', margin: '0 auto 20px auto' }}>
             Supports Microsoft Excel spreadsheets (<code style={{ background: currentTheme.badgeBg, color: currentTheme.badgeText, padding: '2px 6px', borderRadius: '4px' }}>.xlsx</code>) and standard CSV files up to 50MB.
           </p>
@@ -524,7 +524,7 @@ export const UploadPage: React.FC = () => {
       {/* STEP 3: PREVIEW & DATA QUALITY REPORT */}
       {step === 'PREVIEW' && validationReport && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
+
           {/* File Summary Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
             <div className="glass-card metric-card">
@@ -657,11 +657,11 @@ export const UploadPage: React.FC = () => {
       {step === 'PROCESSING' && (
         <div className="glass-card" style={{ padding: '40px 32px', textAlign: 'center' }}>
           <RefreshCw className="animate-spin" size={42} color={currentTheme.accent} style={{ margin: '0 auto 20px auto', display: 'block' }} />
-          
+
           <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#F8FAFC', marginBottom: '8px' }}>
             Processing Dataset Spreadsheet...
           </h3>
-          
+
           <p style={{ color: currentTheme.badgeText, fontSize: '0.95rem', fontWeight: 600, marginBottom: '28px' }}>
             {progressLabels[progressStep]}
           </p>
@@ -685,7 +685,7 @@ export const UploadPage: React.FC = () => {
       {/* STEP 5: RESULTS VIEW */}
       {step === 'RESULTS' && results && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          
+
           {/* Header Success Toast */}
           <div style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '12px', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -713,7 +713,7 @@ export const UploadPage: React.FC = () => {
             <p style={{ color: '#94A3B8', fontSize: '0.85rem', margin: '0 0 16px 0' }}>
               Download multi-tab Excel workbooks or individual Excel spreadsheets (.xlsx) for comfortable editing and reporting.
             </p>
-            
+
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               {/* PRIMARY EXCEL WORKBOOK */}
               <a

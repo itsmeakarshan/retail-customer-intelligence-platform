@@ -229,7 +229,7 @@ def run_ml_pipeline(
     
     segment_names_map = {}
     monetary_order = cluster_profiles['monetary'].sort_values(ascending=False).index.tolist()
-    custom_names = ["High-Value Champions", "High-Value At Risk", "Active Casuals", "Low-Value / Dormant"]
+    custom_names = ["Top VIP Customers", "At-Risk VIP Customers", "Active Customers", "Inactive / Dormant Customers"]
     for idx, cl in enumerate(monetary_order):
         segment_names_map[cl] = custom_names[idx] if idx < len(custom_names) else f"Segment {cl}"
         

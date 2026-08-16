@@ -100,7 +100,7 @@ export const PriceAnalyticsPage: React.FC<PriceAnalyticsPageProps> = ({
     const matchesSearch =
       p.stock_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     if (!matchesSearch) return false;
     if (categoryFilter === 'all') return true;
     if (categoryFilter === 'elastic') return p.category.includes('Elastic (');

@@ -107,10 +107,10 @@ export const CustomerRiskTable: React.FC<CustomerRiskTableProps> = ({ activeDash
             }}
           >
             <option value="">All Customer Groups</option>
-            <option value="High-Value Champions">High-Value Champions</option>
-            <option value="High-Value At Risk">High-Value At Risk</option>
-            <option value="Active Casuals">Active Casuals</option>
-            <option value="Low-Value / Dormant">Low-Value / Dormant</option>
+            <option value="Top VIP Customers">Top VIP Customers</option>
+            <option value="At-Risk VIP Customers">At-Risk VIP Customers</option>
+            <option value="Active Customers">Active Customers</option>
+            <option value="Inactive / Dormant Customers">Inactive / Dormant Customers</option>
           </select>
         </div>
       </div>
@@ -166,7 +166,7 @@ export const CustomerRiskTable: React.FC<CustomerRiskTableProps> = ({ activeDash
               ) : (
                 data.customers.map((c) => {
                   const fillWidth = Math.round(c.churn_probability * 100);
-                  const fillColor = c.churn_probability >= 0.70 ? '#EF4444' : c.churn_probability >= 0.40 ? '#F59E0B' : '#10B981';
+                  const fillColor = c.churn_probability >= 0.70 ? '#EC4899' : c.churn_probability >= 0.40 ? '#F59E0B' : '#10B981';
                   const riskBadgeText = c.churn_probability >= 0.70 ? 'High Risk' : c.churn_probability >= 0.40 ? 'Needs Attention' : 'Low Risk';
                   const riskClass = c.churn_probability >= 0.70 ? 'risk-high' : c.churn_probability >= 0.40 ? 'risk-medium' : 'risk-low';
                   

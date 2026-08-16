@@ -62,10 +62,11 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
   const [searchId, setSearchId] = useState('');
   const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
   const [loadingCust, setLoadingCust] = useState(false);
+  const [hoveredSegIndex, setHoveredSegIndex] = useState<number | null>(null);
 
   // Campaign Form State
   const [campaignName, setCampaignName] = useState('VIP Retention Campaign');
-  const [targetGroup, setTargetGroup] = useState('High-Value At Risk');
+  const [targetGroup, setTargetGroup] = useState('At-Risk VIP Customers');
   const [subject, setSubject] = useState("We'd love to see you again 🎁");
   const [selectedProductCode, setSelectedProductCode] = useState<string>('');
   const [offerType] = useState('Percentage Off');
@@ -201,7 +202,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
         selected_customer_ids: selectedCustomerIds.length > 0 ? selectedCustomerIds : undefined,
         discount_percent: discountPercent
       });
-      
+
       await createCampaign({
         campaign_name: campaignName,
         target_group: targetGroup,
@@ -242,7 +243,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      
+
       {/* Banner */}
       <div className="glass-card" style={{ padding: '24px 28px', borderLeft: '4px solid #6366F1', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(18, 24, 38, 0.8))' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
@@ -294,7 +295,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
 
         <div className="glass-card metric-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 600 }}>High-Value At Risk</span>
+            <span style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 600 }}>At-Risk VIP Customers</span>
             <UserCheck size={18} color="#F59E0B" />
           </div>
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#F59E0B' }}>
@@ -318,63 +319,186 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
       </div>
 
       {/* Interactive Retention Targets Donut Chart */}
-      <div className="glass-card" style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', width: 160, height: 160, flexShrink: 0 }}>
-          <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
-            <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3.8" />
-            {(() => {
-              const hvRisk = summary?.high_value_customers_at_risk || 0;
-              const totalAttention = summary?.customers_needing_attention || 1;
-              const otherAttention = Math.max(0, totalAttention - hvRisk);
+      {(() => {
+        const donutR = 75;
+        const circumference = 2 * Math.PI * donutR;
+        const hvRisk = summary?.high_value_customers_at_risk || 0;
+        const totalAttention = summary?.customers_needing_attention || 1;
+        const otherAttention = Math.max(0, totalAttention - hvRisk);
 
-              const pHV = hvRisk / totalAttention;
-              const pOther = otherAttention / totalAttention;
+        const items = [
+          { name: 'At-Risk VIP Customers', value: hvRisk, pct: hvRisk / totalAttention, color: '#F59E0B' },
+          { name: 'Standard Accounts at Risk', value: otherAttention, pct: otherAttention / totalAttention, color: '#EC4899' }
+        ];
 
-              return (
-                <>
-                  <circle className="donut-slice" cx="18" cy="18" r="15.915" fill="none" stroke="#F59E0B" strokeWidth="3.8"
-                    strokeDasharray={`${pHV * 100} ${100 - pHV * 100}`} strokeDashoffset="0">
-                    <title>{`High-Value At Risk: ${hvRisk.toLocaleString()} VIP accounts (${(pHV * 100).toFixed(1)}%)`}</title>
-                  </circle>
-                  <circle className="donut-slice" cx="18" cy="18" r="15.915" fill="none" stroke="#EF4444" strokeWidth="3.8"
-                    strokeDasharray={`${pOther * 100} ${100 - pOther * 100}`} strokeDashoffset={`${-pHV * 100}`}>
-                    <title>{`Standard At Risk: ${otherAttention.toLocaleString()} accounts (${(pOther * 100).toFixed(1)}%)`}</title>
-                  </circle>
-                </>
-              );
-            })()}
-          </svg>
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', pointerEvents: 'none' }}>
-            <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#F8FAFC' }}>
-              {summary?.customers_needing_attention.toLocaleString()}
-            </span>
-            <span style={{ fontSize: '0.65rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>At Risk</span>
-          </div>
-        </div>
+        const segGapPx = 14;
+        const totalSegGap = items.length * segGapPx;
+        const availSegCircumference = Math.max(0, circumference - totalSegGap);
 
-        <div style={{ flex: 1, minWidth: 260 }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: '0 0 6px 0', color: '#F8FAFC' }}>Retention Priority Share</h3>
-          <p style={{ fontSize: '0.85rem', color: '#94A3B8', margin: '0 0 16px 0' }}>Share of at-risk accounts by VIP tier priority.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: 8 }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#F59E0B' }} />
+        let currentSegOffset = 0;
+        const styledItems = items.map((item, idx) => {
+          const rawLen = item.pct * availSegCircumference;
+          const dashLength = Math.max(1, rawLen);
+          const offset = currentSegOffset;
+          currentSegOffset += dashLength + segGapPx;
+          return {
+            ...item,
+            id: idx,
+            pctDisplay: (item.pct * 100).toFixed(1),
+            dashLength,
+            offset
+          };
+        });
+
+        return (
+          <div className="glass-card" style={{ padding: '24px', borderRadius: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F8FAFC' }}>High-Value VIPs</div>
-                <div style={{ fontSize: '0.75rem', color: '#FDE047' }}>{summary?.high_value_customers_at_risk.toLocaleString()} accounts</div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#F8FAFC', margin: 0 }}>
+                  Retention Priority Share
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted, #94A3B8)', margin: '4px 0 0 0' }}>
+                  Share of at-risk accounts by VIP tier priority.
+                </p>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 8 }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#EF4444' }} />
-              <div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F8FAFC' }}>Standard Accounts</div>
-                <div style={{ fontSize: '0.75rem', color: '#FCA5A5' }}>
-                  {Math.max(0, (summary?.customers_needing_attention || 0) - (summary?.high_value_customers_at_risk || 0)).toLocaleString()} accounts
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap' }}>
+              {/* Donut Canvas */}
+              <div style={{ position: 'relative', width: '190px', height: '190px', flexShrink: 0, margin: '0 auto' }}>
+                <svg viewBox="0 0 220 220" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)', overflow: 'visible' }}>
+                  <circle cx="110" cy="110" r="75" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="14" />
+                  {styledItems.map((seg, i) => (
+                    <circle
+                      key={i}
+                      cx="110"
+                      cy="110"
+                      r="75"
+                      fill="none"
+                      stroke={seg.color}
+                      strokeWidth={hoveredSegIndex === i ? "18" : "14"}
+                      strokeLinecap="round"
+                      strokeDasharray={`${seg.dashLength} ${circumference - seg.dashLength}`}
+                      strokeDashoffset={-seg.offset}
+                      style={{
+                        cursor: 'pointer',
+                        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                        filter: hoveredSegIndex === i ? `drop-shadow(0 0 12px ${seg.color})` : 'none'
+                      }}
+                      onMouseEnter={() => setHoveredSegIndex(i)}
+                      onMouseLeave={() => setHoveredSegIndex(null)}
+                    />
+                  ))}
+                </svg>
+
+                {/* Center Donut Label */}
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  pointerEvents: 'none'
+                }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted, #94A3B8)' }}>
+                    At Risk
+                  </span>
+                  <span style={{ fontSize: '1.85rem', fontWeight: 900, color: '#F8FAFC', letterSpacing: '-0.02em', marginTop: '2px' }}>
+                    {summary?.customers_needing_attention.toLocaleString()}
+                  </span>
+                </div>
+
+                {/* Floating Dark Tooltip Box */}
+                {hoveredSegIndex !== null && styledItems[hoveredSegIndex] && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '100%',
+                    transform: 'translate(10px, -50%)',
+                    background: '#0F172A',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '12px',
+                    padding: '10px 14px',
+                    color: '#F8FAFC',
+                    boxShadow: '0 12px 30px rgba(0,0,0,0.7), 0 0 20px rgba(236,72,153,0.25)',
+                    zIndex: 30,
+                    pointerEvents: 'none',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 800, color: styledItems[hoveredSegIndex].color }}>
+                      {styledItems[hoveredSegIndex].name}
+                    </div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#FFFFFF', marginTop: '2px' }}>
+                      {styledItems[hoveredSegIndex].value.toLocaleString()} <span style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 400 }}>({styledItems[hoveredSegIndex].pctDisplay}%)</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Legend Items */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, minWidth: '180px' }}>
+                {styledItems.map((seg, i) => (
+                  <div
+                    key={i}
+                    onMouseEnter={() => setHoveredSegIndex(i)}
+                    onMouseLeave={() => setHoveredSegIndex(null)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      background: hoveredSegIndex === i ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: seg.color, boxShadow: `0 0 6px ${seg.color}` }} />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main, #F8FAFC)' }}>
+                        {seg.name}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '0.88rem', fontWeight: 800, color: seg.color }}>
+                      {seg.value.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom Summary Stats Split into 2 Columns */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              paddingTop: '16px',
+              marginTop: '16px'
+            }}>
+              <div style={{ textAlign: 'center', paddingRight: '12px' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#F59E0B' }}>
+                  {hvRisk.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #94A3B8)', marginTop: '2px', fontWeight: 500 }}>
+                  High-Priority VIP Accounts
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255, 255, 255, 0.08)', paddingLeft: '12px' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 900, color: '#EC4899' }}>
+                  {otherAttention.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #94A3B8)', marginTop: '2px', fontWeight: 500 }}>
+                  Standard At Risk Accounts
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Recommended Campaigns */}
       <div className="glass-card" style={{ padding: '24px' }}>
@@ -438,11 +562,10 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
               style={{ padding: '8px 12px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#F8FAFC', fontSize: '0.85rem' }}
             >
               <option value="all">All Groups</option>
-              <option value="High-Value Champions">High-Value Champions</option>
-              <option value="High-Value At Risk">High-Value At Risk</option>
-              <option value="Active Casuals">Active Casuals</option>
-              <option value="Loyal Regulars">Loyal Regulars</option>
-              <option value="High-Risk Lost">High-Risk Lost</option>
+              <option value="Top VIP Customers">Top VIP Customers</option>
+              <option value="At-Risk VIP Customers">At-Risk VIP Customers</option>
+              <option value="Active Customers">Active Customers</option>
+              <option value="Inactive / Dormant Customers">Inactive / Dormant Customers</option>
             </select>
 
             <select
@@ -708,7 +831,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
       {isPreviewOpen && previewData && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div className="glass-card" style={{ width: '100%', maxWidth: '580px', padding: '28px', background: '#0B0F17', borderRadius: '20px', border: '1px solid rgba(99, 102, 241, 0.3)', boxShadow: '0 25px 60px rgba(0,0,0,0.8)', maxHeight: '90vh', overflowY: 'auto' }}>
-            
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Mail color="#818CF8" size={24} />
@@ -767,7 +890,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
               >
                 Close
               </button>
-              
+
               <button
                 onClick={handleSendTestEmail}
                 disabled={sendingTest}

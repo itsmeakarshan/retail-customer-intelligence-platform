@@ -1,0 +1,6 @@
+feature_name,psi,ks_statistic,ks_pvalue,baseline_mean,current_mean,baseline_std,current_std,mean_pct_change,status,status_color,status_emoji,recommended_action
+recency,5.07,0.7956,0.0,47.34,123.31,40.21,37.61,160.5,Alert,rose,🔴,Significant distribution shift detected in recency. Review segment definitions or feature pipeline.
+frequency,5.3921,0.7341,0.0,9.09,2.66,5.95,1.9,-70.7,Alert,rose,🔴,Significant distribution shift detected in frequency. Review segment definitions or feature pipeline.
+monetary,4.6664,0.6066,0.0,1610.57,91.11,1827.64,76.16,-94.3,Alert,rose,🔴,Significant distribution shift detected in monetary. Review segment definitions or feature pipeline.
+average_order_value,2.7954,0.4769,0.0,129.66,37.31,106.7,32.79,-71.2,Alert,rose,🔴,Significant distribution shift detected in average_order_value. Review segment definitions or feature pipeline.
+spend_trend,2.9801,0.6264,0.0,4.83,7.92,19.37,45.46,64.0,Alert,rose,🔴,Significant distribution shift detected in spend_trend. Review segment definitions or feature pipeline.

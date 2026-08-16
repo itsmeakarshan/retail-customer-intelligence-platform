@@ -537,13 +537,13 @@ class CSVProcessor:
             r = row['recency']
             cp = row['churn_probability']
             if m >= 2000 and r <= 60:
-                return "High-Value Champions"
+                return "Top VIP Customers"
             elif m >= 2000 and (r > 60 or cp >= 0.40):
-                return "High-Value At Risk"
+                return "At-Risk VIP Customers"
             elif m < 2000 and r <= 90:
-                return "Active Casuals"
+                return "Active Customers"
             else:
-                return "Low-Value / Dormant"
+                return "Inactive / Dormant Customers"
 
         features_df['segment_name'] = features_df.apply(assign_segment, axis=1)
 

@@ -11,10 +11,13 @@ import pandas as pd
 from typing import Dict, List, Any, Optional
 import scipy.stats as stats
 
-# Standard Z-scores for Service Levels
+# Standard Z-scores for Cycle Service Levels (CSL)
+# For a 95% cycle service level target (5% stockout risk per replenishment cycle):
+# Z = NormInv(0.95) = 1.645 standard deviations.
+# Safety Stock = Z * sigma_LT = 1.645 * (sigma_daily * sqrt(lead_time_days)).
 SERVICE_LEVEL_Z = {
     0.90: 1.282,
-    0.95: 1.645,
+    0.95: 1.645, # Default production standard (95% non-stockout probability)
     0.98: 2.054,
     0.99: 2.326
 }
@@ -23,6 +26,12 @@ class InventoryOptimizer:
     """
     Inventory Optimisation Engine.
     Combines demand forecasts, lead time volatility, service level targets, and expiry data.
+    
+    Standard Configuration:
+    - Default Service Level: 95% (Z = 1.645)
+    - Reorder Point (ROP) = Lead Time Demand + Safety Stock = (mu_daily * L) + (1.645 * sigma_daily * sqrt(L))
+    - Target Inventory = Expected 30-day Demand + Safety Stock
+    - Suggested Order = max(0, Target Inventory - Current Stock)
     """
     def __init__(
         self,
@@ -57,14 +66,17 @@ class InventoryOptimizer:
         z_score = SERVICE_LEVEL_Z.get(srv_level, 1.645)
 
         daily_mean = max(0.0, expected_30d_demand / 30.0)
-        daily_std = max(0.5, daily_demand_std)
+        if expected_30d_demand <= 0.0 and daily_demand_std <= 0.0:
+            daily_std = 0.0
+        else:
+            daily_std = max(0.1, daily_demand_std)
 
         # 1. Lead Time Demand & Uncertainty
         lead_time_demand = daily_mean * lead_time
         lead_time_std = daily_std * math.sqrt(lead_time)
 
         # 2. Safety Stock = z * sigma_LT
-        safety_stock = int(math.ceil(z_score * lead_time_std))
+        safety_stock = int(math.ceil(z_score * lead_time_std)) if daily_std > 0 else 0
 
         # 3. Reorder Point = LT Demand + Safety Stock
         reorder_point = int(math.ceil(lead_time_demand + safety_stock))

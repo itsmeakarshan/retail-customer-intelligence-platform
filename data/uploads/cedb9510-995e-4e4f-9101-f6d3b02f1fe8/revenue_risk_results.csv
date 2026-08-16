@@ -1,0 +1,101 @@
+customer_id,country,recency,frequency,monetary,churn_probability,predicted_future_value,expected_30d_revenue,revenue_at_risk,company_may_lose_30d,segment_name
+10063,United Kingdom,64,3,148.74,0.8192,6656.1,2218.7,5452.68,1817.56,Active Customers
+10058,United Kingdom,9,3,32.76,0.6512,6720.62,2240.21,4376.47,1458.82,Active Customers
+10039,Germany,29,5,132.76999999999998,0.5745,771.45,257.15,443.2,147.73,Active Customers
+10044,United Kingdom,14,5,80.04,0.5894,749.27,249.76,441.62,147.21,Active Customers
+10003,France,13,22,6143.35,0.0797,5157.65,1719.22,411.06,137.02,Top VIP Customers
+10041,United Kingdom,42,4,110.72999999999999,0.5302,756.17,252.06,400.92,133.64,Active Customers
+10066,United Kingdom,14,8,273.01,0.0881,3582.4,1194.13,315.61,105.2,Active Customers
+10026,United Kingdom,140,9,2443.42,0.6205,484.02,161.34,300.33,100.11,At-Risk VIP Customers
+10047,United Kingdom,58,8,219.21,0.3647,760.45,253.48,277.34,92.45,Active Customers
+10022,United Kingdom,129,10,2753.96,0.624,428.51,142.84,267.39,89.13,At-Risk VIP Customers
+10069,Germany,48,8,258.43,0.3371,782.41,260.8,263.75,87.92,Active Customers
+10033,United Kingdom,22,4,146.8,0.3139,793.88,264.63,249.2,83.07,Active Customers
+10023,United Kingdom,127,8,2076.92,0.6219,390.53,130.18,242.87,80.96,At-Risk VIP Customers
+10062,United Kingdom,28,6,218.31999999999996,0.2719,776.05,258.68,211.01,70.34,Active Customers
+10018,France,104,11,4189.24,0.3294,611.04,203.68,201.28,67.09,At-Risk VIP Customers
+10016,United Kingdom,131,8,1349.1899999999998,0.6381,298.17,99.39,190.26,63.42,Inactive / Dormant Customers
+10008,United Kingdom,11,20,5420.26,0.082,2191.86,730.62,179.73,59.91,Top VIP Customers
+10024,EIRE,107,10,2110.98,0.4186,418.71,139.57,175.27,58.42,At-Risk VIP Customers
+10010,United Kingdom,0,22,4978.349999999999,0.0917,1841.4,613.8,168.86,56.29,Top VIP Customers
+10021,United Kingdom,104,12,3374.6200000000003,0.3477,481.74,160.58,167.5,55.83,At-Risk VIP Customers
+10017,United Kingdom,96,9,2084.7200000000003,0.4113,401.53,133.84,165.15,55.05,At-Risk VIP Customers
+10030,United Kingdom,100,9,2733.01,0.3351,466.43,155.48,156.3,52.1,At-Risk VIP Customers
+10019,United Kingdom,113,12,2865.9100000000003,0.3477,424.91,141.64,147.74,49.25,At-Risk VIP Customers
+10007,United Kingdom,29,17,4219.87,0.0903,1619.14,539.71,146.21,48.74,Top VIP Customers
+10029,Germany,92,6,1957.9099999999999,0.3689,386.72,128.91,142.66,47.55,Inactive / Dormant Customers
+10027,United Kingdom,122,8,1340.74,0.5551,256.81,85.6,142.56,47.52,Inactive / Dormant Customers
+10032,United Kingdom,8,8,206.73,0.1644,781.87,260.62,128.54,42.85,Active Customers
+10011,United Kingdom,27,21,5787.850000000001,0.0661,1939.47,646.49,128.2,42.73,Top VIP Customers
+10097,France,128,2,14.51,0.866,139.76,46.59,121.03,40.34,Inactive / Dormant Customers
+10014,United Kingdom,7,22,4456.950000000001,0.0655,1820.54,606.85,119.25,39.75,Top VIP Customers
+10081,United Kingdom,142,1,1.87,0.86,137.29,45.76,118.07,39.36,Inactive / Dormant Customers
+10013,United Kingdom,17,20,4508.549999999999,0.0671,1703.52,567.84,114.31,38.1,Top VIP Customers
+10006,United Kingdom,0,21,5348.610000000001,0.0686,1663.5,554.5,114.12,38.04,Top VIP Customers
+10015,United Kingdom,15,22,4144.59,0.0693,1598.22,532.74,110.76,36.92,Top VIP Customers
+10086,United Kingdom,150,1,16.35,0.86,123.35,41.12,106.08,35.36,Inactive / Dormant Customers
+10005,United Kingdom,6,20,4194.31,0.072,1442.51,480.84,103.86,34.62,Top VIP Customers
+10025,United Kingdom,116,6,1095.45,0.5165,189.36,63.12,97.8,32.6,Inactive / Dormant Customers
+10002,United Kingdom,0,15,2790.6699999999996,0.0842,1155.79,385.26,97.32,32.44,Top VIP Customers
+10009,United Kingdom,23,12,3266.3999999999996,0.0791,1221.41,407.14,96.61,32.2,Top VIP Customers
+10075,United Kingdom,132,1,19.36,0.874,109.06,36.35,95.32,31.77,Inactive / Dormant Customers
+10001,United Kingdom,14,15,3916.0,0.0665,1428.27,476.09,94.98,31.66,Top VIP Customers
+10012,United Kingdom,10,18,3637.6000000000004,0.0691,1347.24,449.08,93.09,31.03,Top VIP Customers
+10020,United Kingdom,118,6,1002.5,0.5165,178.87,59.62,92.39,30.8,Inactive / Dormant Customers
+10087,United Kingdom,139,1,21.099999999999998,0.866,106.69,35.56,92.39,30.8,Inactive / Dormant Customers
+10028,United Kingdom,106,6,880.1600000000001,0.5584,155.63,51.88,86.9,28.97,Inactive / Dormant Customers
+10004,United Kingdom,4,16,2916.4500000000007,0.0742,1133.38,377.79,84.1,28.03,Top VIP Customers
+10043,United Kingdom,39,4,372.39,0.3917,199.31,66.44,78.07,26.02,Active Customers
+10085,EIRE,125,2,192.86,0.8621,86.59,28.86,74.65,24.88,Inactive / Dormant Customers
+10071,United Kingdom,126,1,32.51,0.866,77.62,25.87,67.22,22.41,Inactive / Dormant Customers
+10076,Germany,134,1,24.8,0.8767,75.2,25.07,65.93,21.98,Inactive / Dormant Customers
+10073,United Kingdom,138,1,174.39000000000001,0.8505,77.27,25.76,65.72,21.91,Inactive / Dormant Customers
+10077,United Kingdom,132,3,171.5,0.8668,75.2,25.07,65.18,21.73,Inactive / Dormant Customers
+10089,United Kingdom,141,1,123.97,0.8494,75.8,25.27,64.38,21.46,Inactive / Dormant Customers
+10074,France,123,1,28.14,0.8162,78.19,26.06,63.82,21.27,Inactive / Dormant Customers
+10090,United Kingdom,142,1,23.94,0.874,72.83,24.28,63.65,21.22,Inactive / Dormant Customers
+10098,United Kingdom,143,1,31.22,0.866,72.83,24.28,63.07,21.02,Inactive / Dormant Customers
+10036,United Kingdom,23,6,307.44,0.4904,127.25,42.42,62.4,20.8,Active Customers
+10072,France,137,3,187.21,0.8519,72.83,24.28,62.04,20.68,Inactive / Dormant Customers
+10093,United Kingdom,135,3,37.47,0.838,73.68,24.56,61.74,20.58,Inactive / Dormant Customers
+10088,United Kingdom,149,1,58.010000000000005,0.8832,68.57,22.86,60.56,20.19,Inactive / Dormant Customers
+10054,United Kingdom,33,3,448.34000000000003,0.2966,202.24,67.41,59.98,19.99,Active Customers
+10091,Germany,127,3,69.95,0.7579,76.15,25.38,57.71,19.24,Inactive / Dormant Customers
+10079,United Kingdom,128,3,76.19,0.7534,76.15,25.38,57.37,19.12,Inactive / Dormant Customers
+10099,United Kingdom,130,3,97.95000000000002,0.7534,75.2,25.07,56.66,18.89,Inactive / Dormant Customers
+10082,United Kingdom,145,2,56.309999999999995,0.7753,72.06,24.02,55.87,18.62,Inactive / Dormant Customers
+10096,United Kingdom,135,3,66.1,0.7664,72.83,24.28,55.82,18.61,Inactive / Dormant Customers
+10083,United Kingdom,136,3,81.97,0.7534,73.78,24.59,55.59,18.53,Inactive / Dormant Customers
+10095,United Kingdom,153,2,62.5,0.7958,69.52,23.17,55.32,18.44,Inactive / Dormant Customers
+10080,United Kingdom,145,3,62.78,0.7664,71.99,24.0,55.17,18.39,Inactive / Dormant Customers
+10092,United Kingdom,137,3,64.51,0.7534,72.83,24.28,54.87,18.29,Inactive / Dormant Customers
+10100,United Kingdom,139,3,64.51,0.744,72.83,24.28,54.19,18.06,Inactive / Dormant Customers
+10084,Germany,156,2,69.13000000000001,0.7795,69.25,23.08,53.98,17.99,Inactive / Dormant Customers
+10037,EIRE,37,7,403.75,0.4504,119.56,39.85,53.85,17.95,Active Customers
+10078,United Kingdom,150,3,110.4,0.7534,69.52,23.17,52.38,17.46,Inactive / Dormant Customers
+10094,United Kingdom,149,3,66.69000000000001,0.7344,69.67,23.22,51.17,17.06,Inactive / Dormant Customers
+10060,United Kingdom,73,3,74.85000000000002,0.4836,93.93,31.31,45.42,15.14,Active Customers
+10056,United Kingdom,28,4,107.33,0.4178,98.5,32.83,41.15,13.72,Active Customers
+10068,United Kingdom,38,4,86.9,0.4057,97.65,32.55,39.62,13.21,Active Customers
+10050,United Kingdom,21,3,58.62,0.4,98.5,32.83,39.4,13.13,Active Customers
+10045,United Kingdom,14,4,159.99,0.4178,92.54,30.85,38.66,12.89,Active Customers
+10053,United Kingdom,38,3,49.120000000000005,0.383,99.36,33.12,38.05,12.68,Active Customers
+10061,United Kingdom,36,4,96.99000000000001,0.4178,89.99,30.0,37.6,12.53,Active Customers
+10038,United Kingdom,52,4,127.55,0.3608,104.0,34.67,37.52,12.51,Active Customers
+10064,United Kingdom,38,3,80.35,0.4178,89.31,29.77,37.31,12.44,Active Customers
+10031,United Kingdom,43,7,328.5799999999999,0.2776,134.21,44.74,37.26,12.42,Active Customers
+10059,United Kingdom,8,3,88.59,0.4,92.63,30.88,37.05,12.35,Active Customers
+10048,United Kingdom,20,6,270.96999999999997,0.2719,135.42,45.14,36.82,12.27,Active Customers
+10067,United Kingdom,29,4,167.24,0.3881,88.64,29.55,34.4,11.47,Active Customers
+10052,United Kingdom,56,8,306.32,0.36,93.82,31.27,33.78,11.26,Active Customers
+10065,United Kingdom,40,6,112.07,0.3602,91.09,30.36,32.81,10.94,Active Customers
+10046,United Kingdom,30,4,174.85000000000002,0.3608,89.99,30.0,32.47,10.82,Active Customers
+10042,United Kingdom,48,8,276.71,0.2087,155.22,51.74,32.39,10.8,Active Customers
+10055,United Kingdom,49,4,112.25,0.3608,89.62,29.87,32.33,10.78,Active Customers
+10051,EIRE,13,6,129.57,0.3516,88.93,29.64,31.27,10.42,Active Customers
+10049,United Kingdom,51,6,175.74999999999997,0.3654,85.47,28.49,31.23,10.41,Active Customers
+10035,United Kingdom,57,7,330.28,0.3022,101.67,33.89,30.72,10.24,Active Customers
+10057,United Kingdom,29,5,223.71,0.3154,92.58,30.86,29.2,9.73,Active Customers
+10040,United Kingdom,7,7,308.07000000000005,0.211,124.61,41.54,26.29,8.76,Active Customers
+10070,United Kingdom,41,8,295.08,0.1649,112.69,37.56,18.58,6.19,Active Customers
+10034,United Kingdom,39,7,277.65,0.1116,163.78,54.59,18.28,6.09,Active Customers

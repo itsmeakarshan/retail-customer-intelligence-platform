@@ -4,6 +4,7 @@ Implements product-level daily time-series demand forecasting for the Next 30 Da
 Follows strict time-series validation (no future leakage), baseline comparisons (Moving Average),
 and statistically defensible prediction intervals based on out-of-time empirical residual variance.
 """
+import math
 import numpy as np
 import pandas as pd
 from typing import Dict, List, Tuple, Any, Optional
@@ -42,6 +43,96 @@ def calculate_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float
         "mae": round(mae, 3),
         "rmse": round(rmse, 3),
         "smape": round(smape, 2)
+    }
+
+def calculate_trend_momentum(
+    forecast_series: Any,
+    min_denominator: float = 1.0,
+    abs_change_threshold: float = 0.5,
+    pct_change_threshold: float = 5.0,
+    max_display_pct: float = 500.0
+) -> Dict[str, Any]:
+    """
+    Calculates the 30-day forecast trend momentum and classifies direction.
+    
+    Compares the average predicted demand of the first 7 forecast days (days 1-7)
+    with the average predicted demand of the final 7 forecast days (days 24-30).
+    
+    percentage_change = ((last_7_avg - first_7_avg) / denominator) * 100
+    
+    Protection against small denominators / division by zero:
+    - denominator uses max(first_7_avg, min_denominator) when first_7_avg > 0
+      or min_denominator when first_7_avg <= 0.
+    - If absolute change |last_7_avg - first_7_avg| is below abs_change_threshold,
+      or percentage change is below pct_change_threshold, the trend is classified as 'Stable'.
+    - Percentage change is bounded to [-100.0, max_display_pct] to avoid absurd numbers.
+    """
+    if forecast_series is None:
+        return {"trend_pct": 0.0, "trend_direction": "Stable", "first_7_avg": 0.0, "last_7_avg": 0.0, "diff": 0.0}
+
+    if isinstance(forecast_series, dict) and "daily_forecast" in forecast_series:
+        forecast_series = forecast_series["daily_forecast"]
+
+    raw_values = []
+    if isinstance(forecast_series, (list, np.ndarray, pd.Series)):
+        for item in forecast_series:
+            if isinstance(item, dict):
+                val = item.get("forecast_units")
+                if val is None:
+                    val = item.get("forecast_demand", item.get("quantity", 0.0))
+                raw_values.append(float(val) if val is not None else 0.0)
+            elif isinstance(item, (int, float, np.number)):
+                raw_values.append(float(item))
+
+    if len(raw_values) == 0:
+        return {"trend_pct": 0.0, "trend_direction": "Stable", "first_7_avg": 0.0, "last_7_avg": 0.0, "diff": 0.0}
+
+    # Extract days 1-7 and days 24-30 averages
+    if len(raw_values) >= 30:
+        first_7_avg = float(np.mean(raw_values[:7]))
+        last_7_avg = float(np.mean(raw_values[23:30]))
+    elif len(raw_values) >= 14:
+        first_7_avg = float(np.mean(raw_values[:7]))
+        last_7_avg = float(np.mean(raw_values[-7:]))
+    elif len(raw_values) >= 2:
+        mid = len(raw_values) // 2
+        first_7_avg = float(np.mean(raw_values[:mid]))
+        last_7_avg = float(np.mean(raw_values[mid:]))
+    else:
+        first_7_avg = float(raw_values[0])
+        last_7_avg = float(raw_values[0])
+
+    diff = last_7_avg - first_7_avg
+    abs_diff = abs(diff)
+
+    if first_7_avg <= 0.0:
+        denom = max(min_denominator, 1e-6)
+    else:
+        denom = max(first_7_avg, min_denominator)
+
+    if abs_diff < 1e-9:
+        pct = 0.0
+    else:
+        pct = (diff / denom) * 100.0
+
+    pct = max(-100.0, min(pct, max_display_pct))
+    pct = round(pct, 1)
+
+    if abs_diff < abs_change_threshold or abs(pct) < pct_change_threshold:
+        trend_dir = "Stable"
+    elif diff > 0 and pct >= pct_change_threshold:
+        trend_dir = "Rising"
+    elif diff < 0 and pct <= -pct_change_threshold:
+        trend_dir = "Falling"
+    else:
+        trend_dir = "Stable"
+
+    return {
+        "trend_pct": pct,
+        "trend_direction": trend_dir,
+        "first_7_avg": round(first_7_avg, 2),
+        "last_7_avg": round(last_7_avg, 2),
+        "diff": round(diff, 2)
     }
 
 class DemandForecaster:
@@ -226,11 +317,14 @@ class DemandForecaster:
     def generate_30day_forecast(
         self, 
         df_daily: pd.DataFrame, 
-        stock_code: str
+        stock_code: str,
+        horizon_days: Optional[int] = None
     ) -> Dict[str, Any]:
         """
-        Generates 30-day future daily demand forecasts with uncertainty bounds.
+        Generates multi-step future daily demand forecasts with uncertainty bounds for the given horizon.
         """
+        horizon = horizon_days if horizon_days is not None else self.horizon_days
+
         if stock_code not in self.models:
             # Attempt training
             res = self.train_and_evaluate_product(df_daily, stock_code)
@@ -242,7 +336,7 @@ class DemandForecaster:
                     recent_std = 1.0
                 
                 last_date = df_daily['date'].max() if not df_daily.empty else datetime.now()
-                future_dates = [last_date + timedelta(days=i) for i in range(1, self.horizon_days + 1)]
+                future_dates = [last_date + timedelta(days=i) for i in range(1, horizon + 1)]
                 daily_forecasts = []
                 for dt in future_dates:
                     daily_forecasts.append({
@@ -251,13 +345,18 @@ class DemandForecaster:
                         "lower_bound": round(max(0.0, recent_mean - 1.44 * recent_std), 1),
                         "upper_bound": round(recent_mean + 1.44 * recent_std, 1)
                     })
-                total_expected = round(recent_mean * self.horizon_days, 1)
+                total_expected = round(recent_mean * horizon, 1)
+                total_std_horizon = recent_std * math.sqrt(horizon)
+                trend_info = calculate_trend_momentum(daily_forecasts)
                 return {
                     "stock_code": stock_code,
                     "model_used": "MovingAverageFallback (Short Series)",
                     "expected_30d_demand": total_expected,
-                    "lower_30d_estimate": round(max(0.0, total_expected - 1.44 * recent_std * np.sqrt(30)), 1),
-                    "upper_30d_estimate": round(total_expected + 1.44 * recent_std * np.sqrt(30), 1),
+                    "lower_30d_estimate": round(max(0.0, total_expected - 1.44 * total_std_horizon), 1),
+                    "upper_30d_estimate": round(total_expected + 1.44 * total_std_horizon, 1),
+                    "daily_demand_std": round(recent_std, 2),
+                    "trend_pct": trend_info["trend_pct"],
+                    "trend_direction": trend_info["trend_direction"],
                     "daily_forecast": daily_forecasts,
                     "interval_method": "Historical 14-day sample standard deviation"
                 }
@@ -279,7 +378,7 @@ class DemandForecaster:
             'price_lag1'
         ]
 
-        for step in range(1, self.horizon_days + 1):
+        for step in range(1, horizon + 1):
             next_date = last_date + timedelta(days=step)
             
             # Compute features for next_date using past actuals + previous step forecasts
@@ -344,8 +443,13 @@ class DemandForecaster:
             df_working = pd.concat([df_working, new_row], ignore_index=True)
 
         tot_expected = round(sum(d['forecast_units'] for d in daily_forecasts), 1)
-        tot_lower = round(max(0.0, sum(d['lower_bound'] for d in daily_forecasts)), 1)
-        tot_upper = round(sum(d['upper_bound'] for d in daily_forecasts), 1)
+        # Cumulative uncertainty scales with sqrt of sum of daily forecast variances
+        total_std_horizon = math.sqrt(sum((res_std * (1.0 + 0.015 * step)) ** 2 for step in range(1, horizon + 1)))
+        tot_lower = round(max(0.0, tot_expected - 1.44 * total_std_horizon), 1)
+        tot_upper = round(tot_expected + 1.44 * total_std_horizon, 1)
+        daily_demand_std = round(total_std_horizon / math.sqrt(horizon), 2)
+
+        trend_info = calculate_trend_momentum(daily_forecasts)
 
         return {
             "stock_code": stock_code,
@@ -353,6 +457,9 @@ class DemandForecaster:
             "expected_30d_demand": tot_expected,
             "lower_30d_estimate": tot_lower,
             "upper_30d_estimate": tot_upper,
+            "daily_demand_std": daily_demand_std,
+            "trend_pct": trend_info["trend_pct"],
+            "trend_direction": trend_info["trend_direction"],
             "daily_forecast": daily_forecasts,
             "validation_metrics": self.validation_metrics.get(stock_code),
             "interval_method": "Empirical residual standard deviation over out-of-time validation window (85% coverage)"

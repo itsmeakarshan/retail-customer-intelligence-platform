@@ -16,8 +16,9 @@ if PROJECT_ROOT not in sys.path:
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
 from backend.app.api.endpoints import router as api_router
-
 from backend.app.services.synthetic_generator import init_synthetic_tables
+from backend.app.services.retail_intelligence_service import retail_intelligence_service
+from backend.app.db.database import SessionLocal
 
 app = FastAPI(
     title="Customer Intelligence & Revenue Risk Platform API",
@@ -28,6 +29,11 @@ app = FastAPI(
 @app.on_event("startup")
 def on_startup():
     init_synthetic_tables()
+    db = SessionLocal()
+    try:
+        retail_intelligence_service.warm_up_cache(db=db)
+    finally:
+        db.close()
 
 # Enable CORS for local React Frontend (Vite default port 5173 / 3000)
 app.add_middleware(

@@ -371,6 +371,7 @@ class ProductDemandItem(BaseModel):
     expected_30d_demand: float
     lower_30d_estimate: float
     upper_30d_estimate: float
+    daily_demand_std: Optional[float] = None
     trend_pct: float
     trend_direction: str # "Rising", "Falling", "Stable"
     status: str # "Healthy", "Monitor", "Replenishment Needed"
@@ -393,6 +394,7 @@ class ProductDemandDetailResponse(BaseModel):
     expected_30d_demand: float
     lower_30d_estimate: float
     upper_30d_estimate: float
+    daily_demand_std: Optional[float] = None
     trend_pct: float
     trend_direction: str
     history: List[DailyDemandPoint]
@@ -404,13 +406,13 @@ class ProductDemandDetailResponse(BaseModel):
 # PHASE 6-8: INVENTORY OPTIMISATION SCHEMAS
 # ==========================================
 class ExpiryRiskAlert(BaseModel):
-    is_high_risk: bool
-    expiry_days_remaining: int
-    expiry_status: str
-    expected_demand_before_expiry: float
-    units_at_risk: int
-    estimated_waste_cost: float
-    recommendation: str
+    is_high_risk: Optional[bool] = False
+    expiry_days_remaining: Optional[int] = None
+    expiry_status: Optional[str] = "Healthy"
+    expected_demand_before_expiry: Optional[float] = 0.0
+    units_at_risk: Optional[int] = 0
+    estimated_waste_cost: Optional[float] = 0.0
+    recommendation: Optional[str] = ""
 
 class InventoryItem(BaseModel):
     stock_code: str
@@ -427,7 +429,7 @@ class InventoryItem(BaseModel):
     reorder_point: int
     current_stock: int
     suggested_order: int
-    status: str # "Replenishment Needed", "Excess Stock", "Healthy"
+    status: str # "Replenishment Needed", "Excess Stock", "Healthy", "Insufficient History"
     status_color: str
     status_emoji: str
     reason: str
@@ -435,9 +437,14 @@ class InventoryItem(BaseModel):
     order_cost_scenario: float
     expiry_risk_alert: Optional[ExpiryRiskAlert] = None
     data_disclosure: str
+    is_eligible: Optional[bool] = True
+    exclusion_reason: Optional[str] = None
 
 class InventorySummaryResponse(BaseModel):
+    total_products_available: Optional[int] = 4631
     total_products_analysed: int
+    excluded_products_count: Optional[int] = 268
+    products_analysed_display: Optional[str] = "4,363 / 4,631"
     replenishment_needed_count: int
     excess_stock_count: int
     healthy_count: int
@@ -447,6 +454,11 @@ class InventorySummaryResponse(BaseModel):
     total_suggested_order_cost: float
     default_lead_time_days: int
     default_service_level: float
+
+class InventoryEmailReportRequest(BaseModel):
+    recipient_email: Optional[str] = None
+    subject: Optional[str] = "Retail Inventory Replenishment Report"
+    message: Optional[str] = "Please find attached the latest inventory replenishment report, including forecast demand, stock requirements, reorder points and recommended order quantities."
 
 class InventorySimulationRequest(BaseModel):
     stock_code: str
@@ -475,6 +487,7 @@ class InventorySimulationResponse(BaseModel):
     holding_cost_annual_scenario: float
     stockout_risk_exposure_scenario: float
     order_cost_scenario: float
+    expiry_risk_alert: Optional[ExpiryRiskAlert] = None
     disclosure: str
 
 # ==========================================
@@ -483,13 +496,13 @@ class InventorySimulationResponse(BaseModel):
 class PriceElasticityItem(BaseModel):
     stock_code: str
     description: str
-    avg_price: float
-    min_price: float
-    max_price: float
-    avg_quantity: float
-    total_quantity: int
-    distinct_prices: int
-    sample_size: int
+    avg_price: Optional[float] = 0.0
+    min_price: Optional[float] = 0.0
+    max_price: Optional[float] = 0.0
+    avg_quantity: Optional[float] = 0.0
+    total_quantity: Optional[int] = 0
+    distinct_prices: Optional[int] = 0
+    sample_size: Optional[int] = 0
     elasticity: Optional[float] = None
     se: Optional[float] = None
     t_stat: Optional[float] = None
@@ -497,10 +510,10 @@ class PriceElasticityItem(BaseModel):
     ci_lower: Optional[float] = None
     ci_upper: Optional[float] = None
     r_squared: Optional[float] = None
-    category: str # "Elastic (High Price Sensitivity)", "Inelastic (Low Price Sensitivity)", "Inconclusive", "Insufficient Variation"
-    interpretation: str
-    is_statistically_significant: bool
-    status: str
+    category: Optional[str] = "Insufficient Variation"
+    interpretation: Optional[str] = ""
+    is_statistically_significant: Optional[bool] = False
+    status: Optional[str] = "Insufficient Data"
 
 class PricingSummaryResponse(BaseModel):
     total_products_analysed: int

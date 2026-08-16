@@ -77,7 +77,7 @@ export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNaviga
         activeDashboardId
       );
       setProducts(prodList);
-      
+
       // Initialize discount overrides from backend values
       const initialOverrides: { [key: string]: number } = {};
       prodList.forEach(p => {
@@ -207,7 +207,7 @@ export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNaviga
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      
+
       {/* Toast Notification */}
       {toastMsg && (
         <div style={{
@@ -251,7 +251,7 @@ export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNaviga
 
       <RecommendedActionCard
         title="Expiry & Clearance Optimization"
-        subtitle={kpis && kpis.expiring_this_month > 0 
+        subtitle={kpis && kpis.expiring_this_month > 0
           ? `Found ${kpis.expiring_this_month} products expiring within 30 days totaling £${kpis.stock_value_at_risk.toLocaleString()} at-risk stock value.`
           : `No product expiry information identified in this uploaded dataset. Expiry analysis requires the ExpiryWithinDays column.`
         }
@@ -312,7 +312,7 @@ export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNaviga
 
       {/* CHARTS SECTION 1: Line Chart & Donut Chart */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
-        
+
         {/* Line Chart: Products Approaching Expiry */}
         <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
           <div style={{ marginBottom: '16px' }}>
@@ -431,7 +431,7 @@ export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNaviga
 
       {/* PRODUCT TABLE & FILTERS SECTION */}
       <div className="glass-card" style={{ padding: '24px' }}>
-        
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
           <div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: '#F8FAFC', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -461,7 +461,7 @@ export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNaviga
 
         {/* Filter Toolbar */}
         <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px', alignItems: 'center' }}>
-          
+
           {/* Period Filter Buttons */}
           <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', flexWrap: 'wrap' }}>
             {[
@@ -745,7 +745,7 @@ export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNaviga
       {isLabelOpen && labelData && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div className="glass-card printable-label-card" style={{ width: '100%', maxWidth: '420px', padding: '28px', background: '#FFFFFF', color: '#000000', borderRadius: '16px', boxShadow: '0 25px 60px rgba(0,0,0,0.8)', border: '3px dashed #000000' }}>
-            
+
             <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #DDD', paddingBottom: '8px' }}>
               <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: 700 }}>Printable Label Preview</span>
               <button onClick={() => setIsLabelOpen(false)} style={{ background: 'none', border: 'none', color: '#000', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 800 }}>
@@ -793,7 +793,7 @@ export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNaviga
               >
                 Close
               </button>
-              
+
               <button
                 onClick={handleTriggerPrint}
                 style={{ flex: 2, padding: '12px', background: '#4F46E5', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
@@ -807,7 +807,8 @@ export const ExpiryProductsPage: React.FC<{ activeDashboardId?: string; onNaviga
       )}
 
       {/* PRINT MEDIA STYLING RULE */}
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @media print {
           body * {
             visibility: hidden;

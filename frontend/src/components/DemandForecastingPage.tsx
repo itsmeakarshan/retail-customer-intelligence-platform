@@ -36,6 +36,7 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
   const [selectedStockCode, setSelectedStockCode] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [trendFilter, setTrendFilter] = useState<string>('all');
+  const [forecastHorizon, setForecastHorizon] = useState<number>(30);
   const [loading, setLoading] = useState<boolean>(true);
   const [detailLoading, setDetailLoading] = useState<boolean>(false);
 
@@ -65,7 +66,7 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
         if (prodRes.length > 0) {
           const firstCode = prodRes[0].stock_code;
           setSelectedStockCode(firstCode);
-          loadProductDetail(firstCode);
+          loadProductDetail(firstCode, forecastHorizon);
         }
       } catch (err) {
         console.error("Failed to load demand forecasting data:", err);
@@ -76,10 +77,10 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
     loadData();
   }, [activeDashboardId]);
 
-  async function loadProductDetail(code: string) {
+  async function loadProductDetail(code: string, days: number = forecastHorizon) {
     setDetailLoading(true);
     try {
-      const detail = await fetchDemandProductDetail(code, activeDashboardId);
+      const detail = await fetchDemandProductDetail(code, activeDashboardId, days);
       setSelectedProduct(detail);
     } catch (err) {
       console.error("Failed to load product detail:", err);
@@ -90,7 +91,7 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
 
   const handleProductSelect = (code: string) => {
     setSelectedStockCode(code);
-    loadProductDetail(code);
+    loadProductDetail(code, forecastHorizon);
   };
 
   const filteredProducts = products.filter(p => {
@@ -102,16 +103,15 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
   });
 
   // Chart calculation for Selected Product
-  const chartHeight = 220;
+  const chartHeight = 140;
   const chartWidth = 720;
-  const padding = { top: 20, right: 30, bottom: 30, left: 45 };
+  const padding = { top: 16, right: 30, bottom: 25, left: 45 };
 
-  const historyPoints = selectedProduct?.history || [];
   const forecastPoints = selectedProduct?.forecast || [];
-  const allPoints = [...historyPoints, ...forecastPoints];
+  const allPoints = forecastPoints;
 
   const maxVal = Math.max(
-    ...allPoints.map(p => Math.max(p.actual_units || 0, p.upper_bound || p.forecast_units || 0)),
+    ...allPoints.map(p => Math.max(p.upper_bound || p.forecast_units || 0, p.forecast_units || 0)),
     10
   );
 
@@ -124,28 +124,18 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
     return chartHeight - padding.bottom - (val / maxVal) * usableHeight;
   };
 
-  // Build SVG Path for History (Solid Cyan/Blue line)
-  const historyPath = historyPoints.length > 0
-    ? historyPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${getX(i, allPoints.length)} ${getY(p.actual_units || 0)}`).join(' ')
-    : '';
-
-  // Build SVG Path for Forecast (Indigo/Purple dashed line)
-  const forecastStartIndex = historyPoints.length > 0 ? historyPoints.length - 1 : 0;
-  const forecastPathPoints = historyPoints.length > 0
-    ? [{ date: historyPoints[historyPoints.length - 1].date, forecast_units: historyPoints[historyPoints.length - 1].actual_units || 0, lower_bound: historyPoints[historyPoints.length - 1].actual_units || 0, upper_bound: historyPoints[historyPoints.length - 1].actual_units || 0 }, ...forecastPoints]
-    : forecastPoints;
-
-  const forecastPath = forecastPathPoints.length > 0
-    ? forecastPathPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${getX(forecastStartIndex + i, allPoints.length)} ${getY(p.forecast_units || 0)}`).join(' ')
+  // Build SVG Path for Forecast (Blue/Indigo dashed line)
+  const forecastPath = forecastPoints.length > 0
+    ? forecastPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${getX(i, forecastPoints.length)} ${getY(p.forecast_units || 0)}`).join(' ')
     : '';
 
   // Build Uncertainty Band Area (Confidence Interval polygon)
-  const upperPoints = forecastPathPoints.map((p, i) => `${getX(forecastStartIndex + i, allPoints.length)},${getY(p.upper_bound || p.forecast_units || 0)}`);
-  const lowerPoints = [...forecastPathPoints].reverse().map((p, i) => {
-    const origIdx = forecastPathPoints.length - 1 - i;
-    return `${getX(forecastStartIndex + origIdx, allPoints.length)},${getY(p.lower_bound || 0)}`;
+  const upperPoints = forecastPoints.map((p, i) => `${getX(i, forecastPoints.length)},${getY(p.upper_bound || p.forecast_units || 0)}`);
+  const lowerPoints = [...forecastPoints].reverse().map((p, i) => {
+    const origIdx = forecastPoints.length - 1 - i;
+    return `${getX(origIdx, forecastPoints.length)},${getY(p.lower_bound || 0)}`;
   });
-  const confidenceAreaPath = forecastPathPoints.length > 0 ? `M ${upperPoints.join(' L ')} L ${lowerPoints.join(' L ')} Z` : '';
+  const confidenceAreaPath = forecastPoints.length > 0 ? `M ${upperPoints.join(' L ')} L ${lowerPoints.join(' L ')} Z` : '';
 
   if (loading) {
     return (
@@ -236,7 +226,7 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
             {summary?.products_rising_demand || 0}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#10B981', marginTop: '6px' }}>
-            &gt; +15% demand acceleration
+            &gt; +5% forecast momentum
           </div>
         </div>
 
@@ -249,7 +239,7 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
             {summary?.products_falling_demand || 0}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#F43F5E', marginTop: '6px' }}>
-            &lt; -15% demand deceleration
+            &lt; -5% forecast momentum
           </div>
         </div>
       </div>
@@ -266,34 +256,84 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
             </h3>
           </div>
 
-          {selectedProduct && (
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              <div style={{ padding: '8px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)' }}>Expected 30-Day Demand</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#38BDF8' }}>
-                  {Math.round(selectedProduct.expected_30d_demand).toLocaleString()} units
-                </div>
-              </div>
-              <div style={{ padding: '8px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)' }}>Likely Range (85% Conf.)</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#A5B4FC' }}>
-                  {Math.round(selectedProduct.lower_30d_estimate).toLocaleString()} – {Math.round(selectedProduct.upper_30d_estimate).toLocaleString()}
-                </div>
-              </div>
-              <div style={{ padding: '8px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)' }}>Trend Momentum</div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: selectedProduct.trend_pct >= 0 ? '#10B981' : '#F43F5E' }}>
-                  {selectedProduct.trend_pct > 0 ? '+' : ''}{selectedProduct.trend_pct}% ({selectedProduct.trend_direction})
-                </div>
-              </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            {/* 30d / 90d Horizon Toggle Pill Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '3px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <button
+                onClick={() => {
+                  setForecastHorizon(30);
+                  if (selectedStockCode) loadProductDetail(selectedStockCode, 30);
+                }}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: forecastHorizon === 30 ? 'linear-gradient(135deg, #6366F1, #4F46E5)' : 'transparent',
+                  color: forecastHorizon === 30 ? '#FFFFFF' : '#94A3B8',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: forecastHorizon === 30 ? '0 2px 8px rgba(99, 102, 241, 0.4)' : 'none'
+                }}
+              >
+                30 Days
+              </button>
+              <button
+                onClick={() => {
+                  setForecastHorizon(90);
+                  if (selectedStockCode) loadProductDetail(selectedStockCode, 90);
+                }}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: forecastHorizon === 90 ? 'linear-gradient(135deg, #6366F1, #4F46E5)' : 'transparent',
+                  color: forecastHorizon === 90 ? '#FFFFFF' : '#94A3B8',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: forecastHorizon === 90 ? '0 2px 8px rgba(99, 102, 241, 0.4)' : 'none'
+                }}
+              >
+                90 Days
+              </button>
             </div>
-          )}
+
+            {selectedProduct && (
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{ padding: '8px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)' }}>Expected {forecastHorizon}-Day Demand</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#38BDF8' }}>
+                    {Math.round(selectedProduct.expected_30d_demand).toLocaleString()} units
+                  </div>
+                </div>
+                <div style={{ padding: '8px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)' }}>Likely Range ({forecastHorizon}d Conf.)</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#A5B4FC' }}>
+                    {Math.round(selectedProduct.lower_30d_estimate).toLocaleString()} – {Math.round(selectedProduct.upper_30d_estimate).toLocaleString()}
+                  </div>
+                </div>
+                <div style={{ padding: '8px 14px', borderRadius: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted, #94A3B8)' }}>Trend Momentum</div>
+                  <div style={{
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    color: selectedProduct.trend_direction === 'Rising' ? '#10B981' : (selectedProduct.trend_direction === 'Falling' ? '#F43F5E' : 'var(--text-muted, #94A3B8)')
+                  }}>
+                    {selectedProduct.trend_pct > 0 ? '+' : ''}{selectedProduct.trend_pct}% ({selectedProduct.trend_direction})
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Large Interactive SVG Forecast Chart */}
-        <div style={{ position: 'relative', width: '100%', background: 'rgba(15, 23, 42, 0.4)', borderRadius: '10px', padding: '16px 8px', overflowX: 'auto' }}>
+        {/* Compact SVG Forecast Chart */}
+        <div style={{ position: 'relative', width: '100%', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px', padding: '12px 8px', border: '1px solid var(--bg-card-border, #E2E8F0)', overflowX: 'auto' }}>
           {detailLoading ? (
-            <div style={{ height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted, #94A3B8)' }}>
+            <div style={{ height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted, #64748B)' }}>
               Generating multi-step forecast...
             </div>
           ) : (
@@ -308,55 +348,25 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
                 const val = Math.round(frac * maxVal);
                 return (
                   <g key={idx}>
-                    <line x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+                    <line x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
                     <text x={padding.left - 8} y={y + 4} fill="var(--text-muted, #64748B)" fontSize="10" textAnchor="end">{val}</text>
                   </g>
                 );
               })}
 
-              {/* Vertical Transition Boundary Line */}
-              {historyPoints.length > 0 && (
-                <g>
-                  <line
-                    x1={getX(historyPoints.length - 1, allPoints.length)}
-                    y1={padding.top}
-                    x2={getX(historyPoints.length - 1, allPoints.length)}
-                    y2={chartHeight - padding.bottom}
-                    stroke="#818CF8"
-                    strokeDasharray="4 4"
-                    strokeWidth="1.5"
-                  />
-                  <text
-                    x={getX(historyPoints.length - 1, allPoints.length) + 6}
-                    y={padding.top + 12}
-                    fill="#818CF8"
-                    fontSize="10"
-                    fontWeight="600"
-                  >
-                    Forecast Horizon →
-                  </text>
-                </g>
-              )}
-
               {/* Uncertainty Confidence Band */}
               {confidenceAreaPath && (
-                <path d={confidenceAreaPath} fill="rgba(99, 102, 241, 0.15)" stroke="none" />
-              )}
-
-              {/* Historical Demand Line */}
-              {historyPath && (
-                <path d={historyPath} fill="none" stroke="#38BDF8" strokeWidth="2.5" strokeLinecap="round" />
+                <path d={confidenceAreaPath} fill="rgba(37, 99, 235, 0.15)" stroke="none" />
               )}
 
               {/* Forecast Demand Line */}
               {forecastPath && (
-                <path d={forecastPath} fill="none" stroke="#818CF8" strokeWidth="2.5" strokeDasharray="5 4" strokeLinecap="round" />
+                <path d={forecastPath} fill="none" stroke="#2563EB" strokeWidth="2.2" strokeDasharray="4 3" strokeLinecap="round" />
               )}
 
               {/* Interactive Hover Nodes */}
               {allPoints.map((pt, i) => {
-                const isHist = i < historyPoints.length;
-                const val = isHist ? (pt.actual_units || 0) : (pt.forecast_units || 0);
+                const val = pt.forecast_units || 0;
                 const x = getX(i, allPoints.length);
                 const y = getY(val);
 
@@ -365,15 +375,15 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
                     key={i}
                     cx={x}
                     cy={y}
-                    r={hoveredPoint?.date === pt.date ? 6 : (isHist ? 3 : 3.5)}
-                    fill={isHist ? '#38BDF8' : '#818CF8'}
-                    stroke="#0B0F17"
+                    r={hoveredPoint?.date === pt.date ? 5.5 : 2.5}
+                    fill="#2563EB"
+                    stroke="#FFFFFF"
                     strokeWidth="1.5"
                     style={{ cursor: 'pointer', transition: 'r 0.15s' }}
                     onMouseEnter={() => {
                       setHoveredPoint({
                         date: pt.date,
-                        actual: pt.actual_units,
+                        actual: undefined,
                         forecast: pt.forecast_units,
                         lower: pt.lower_bound,
                         upper: pt.upper_bound,
@@ -395,25 +405,22 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
                 left: `${(hoveredPoint.x / chartWidth) * 100}%`,
                 top: `${(hoveredPoint.y / chartHeight) * 100}%`,
                 transform: 'translate(-50%, -120%)',
-                background: 'rgba(15, 23, 42, 0.95)',
-                border: '1px solid rgba(99, 102, 241, 0.4)',
+                background: '#0F172A',
+                border: '1px solid #334155',
                 borderRadius: '8px',
-                padding: '8px 12px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                padding: '6px 10px',
+                boxShadow: '0 6px 18px rgba(15, 23, 42, 0.25)',
                 pointerEvents: 'none',
                 zIndex: 10,
                 whiteSpace: 'nowrap',
-                fontSize: '0.8rem'
+                fontSize: '0.78rem'
               }}
             >
-              <div style={{ fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>{hoveredPoint.date}</div>
-              {hoveredPoint.actual !== undefined && (
-                <div style={{ color: '#38BDF8' }}>Actual: <strong>{hoveredPoint.actual} units</strong></div>
-              )}
+              <div style={{ fontWeight: 700, color: '#FFFFFF', marginBottom: '2px' }}>{hoveredPoint.date}</div>
               {hoveredPoint.forecast !== undefined && (
                 <>
-                  <div style={{ color: '#818CF8' }}>Forecast: <strong>{hoveredPoint.forecast} units</strong></div>
-                  <div style={{ color: 'var(--text-muted, #94A3B8)', fontSize: '0.72rem' }}>
+                  <div style={{ color: '#60A5FA' }}>Forecast: <strong>{hoveredPoint.forecast} units</strong></div>
+                  <div style={{ color: '#94A3B8', fontSize: '0.7rem' }}>
                     Range: [{hoveredPoint.lower} – {hoveredPoint.upper}]
                   </div>
                 </>
@@ -423,23 +430,19 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
         </div>
 
         {/* Legend & Interval Methodology note */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-muted, #94A3B8)', gap: '12px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-muted, #64748B)', gap: '12px' }}>
           <div style={{ display: 'flex', gap: '18px', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '12px', height: '3px', background: '#38BDF8', borderRadius: '2px' }} />
-              Historical Actuals
+              <span style={{ width: '12px', height: '3px', background: '#2563EB', borderTop: '2px dashed #2563EB' }} />
+              Expected Forecast (Next {forecastHorizon} Days)
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '12px', height: '3px', background: '#818CF8', borderTop: '2px dashed #818CF8' }} />
-              Expected Forecast (Next 30 Days)
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '12px', height: '10px', background: 'rgba(99, 102, 241, 0.25)', borderRadius: '2px' }} />
+              <span style={{ width: '12px', height: '10px', background: 'rgba(37, 99, 235, 0.2)', borderRadius: '2px' }} />
               85% Empirical Prediction Interval
             </div>
           </div>
           <div>
-            Model: <strong style={{ color: '#F8FAFC' }}>{selectedProduct?.validation_metrics?.ml_model_type || 'Time-Series ML Forecaster'}</strong> | MAE: {selectedProduct?.validation_metrics?.ml_metrics?.mae || '12.4'}
+            Model: <strong style={{ color: 'var(--text-main, #0F172A)' }}>{selectedProduct?.validation_metrics?.ml_model_type || 'Time-Series ML Forecaster'}</strong> | MAE: {selectedProduct?.validation_metrics?.ml_metrics?.mae || '12.4'}
           </div>
         </div>
       </div>
@@ -448,7 +451,7 @@ export const DemandForecastingPage: React.FC<DemandForecastingPageProps> = ({
       <div className="glass-card" style={{ padding: '24px', borderRadius: '14px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
           <div>
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: '#F8FAFC' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0, color: 'var(--text-main, #0F172A)' }}>
               Product Demand Forecast Catalog
             </h3>
             <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted, #94A3B8)' }}>

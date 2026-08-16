@@ -1,5 +1,23 @@
 export const API_BASE = "http://localhost:8000/api";
 
+export function formatSegmentName(name: string): string {
+  if (!name) return name;
+  const s = name.trim();
+  if (s === 'High-Value Champions' || s === 'Champions' || s === 'High-Value VIPs') {
+    return 'Top VIP Customers';
+  }
+  if (s === 'High-Value At Risk' || s === 'At-Risk VIPs') {
+    return 'At-Risk VIP Customers';
+  }
+  if (s === 'Active Casuals' || s === 'Casuals') {
+    return 'Active Customers';
+  }
+  if (s === 'Low-Value / Dormant' || s === 'Low-Value' || s === 'Dormant') {
+    return 'Inactive / Dormant Customers';
+  }
+  return s;
+}
+
 export interface ExecutiveSummary {
   total_customers: number;
   high_risk_customers: number;
@@ -156,12 +174,23 @@ export async function fetchCustomers(params: {
   if (params.dashboard_id) query.append("dashboard_id", params.dashboard_id);
 
   const res = await fetch(`${API_BASE}/customers?${query.toString()}`);
-  return res.json();
+  const data: PaginatedCustomers = await res.json();
+  if (data && data.customers) {
+    data.customers = data.customers.map(c => ({
+      ...c,
+      segment_name: formatSegmentName(c.segment_name)
+    }));
+  }
+  return data;
 }
 
 export async function fetchCustomerDetail(customerId: string): Promise<CustomerDetail> {
   const res = await fetch(`${API_BASE}/customers/${customerId}`);
-  return res.json();
+  const data: CustomerDetail = await res.json();
+  if (data && data.segment_name) {
+    data.segment_name = formatSegmentName(data.segment_name);
+  }
+  return data;
 }
 
 export async function fetchCustomerExplanation(customerId: string): Promise<CustomerExplanation> {
@@ -171,12 +200,23 @@ export async function fetchCustomerExplanation(customerId: string): Promise<Cust
 
 export async function fetchSegments(dashboardId: string = 'default'): Promise<SegmentSummary[]> {
   const res = await fetch(`${API_BASE}/segments?dashboard_id=${encodeURIComponent(dashboardId)}`);
-  return res.json();
+  const data: SegmentSummary[] = await res.json();
+  return (data || []).map(s => ({
+    ...s,
+    segment_name: formatSegmentName(s.segment_name)
+  }));
 }
 
 export async function fetchRevenueRisk(dashboardId: string = 'default'): Promise<RevenueRiskBreakdown> {
   const res = await fetch(`${API_BASE}/revenue-risk?dashboard_id=${encodeURIComponent(dashboardId)}`);
-  return res.json();
+  const data: RevenueRiskBreakdown = await res.json();
+  if (data && data.by_segment) {
+    data.by_segment = data.by_segment.map(s => ({
+      ...s,
+      segment_name: formatSegmentName(s.segment_name)
+    }));
+  }
+  return data;
 }
 
 export async function fetchModelMetrics(): Promise<ModelMetricsResponse> {
@@ -722,8 +762,8 @@ export async function fetchDemandProducts(params?: {
   return res.json();
 }
 
-export async function fetchDemandProductDetail(stockCode: string, dashboardId = "default"): Promise<ProductDemandDetail> {
-  const res = await fetch(`${API_BASE}/forecasting/product/${encodeURIComponent(stockCode)}?dashboard_id=${encodeURIComponent(dashboardId)}`);
+export async function fetchDemandProductDetail(stockCode: string, dashboardId = "default", days = 30): Promise<ProductDemandDetail> {
+  const res = await fetch(`${API_BASE}/forecasting/product/${encodeURIComponent(stockCode)}?dashboard_id=${encodeURIComponent(dashboardId)}&days=${days}`);
   if (!res.ok) throw new Error(`Failed to fetch demand detail for ${stockCode}.`);
   return res.json();
 }
@@ -760,7 +800,7 @@ export interface InventoryItem {
   reorder_point: number;
   current_stock: number;
   suggested_order: number;
-  status: "Replenishment Needed" | "Excess Stock" | "Healthy";
+  status: string;
   status_color: string;
   status_emoji: string;
   reason: string;
@@ -768,10 +808,15 @@ export interface InventoryItem {
   order_cost_scenario: number;
   expiry_risk_alert?: ExpiryRiskAlert;
   data_disclosure: string;
+  is_eligible?: boolean;
+  exclusion_reason?: string;
 }
 
 export interface InventorySummary {
+  total_products_available?: number;
   total_products_analysed: number;
+  excluded_products_count?: number;
+  products_analysed_display?: string;
   replenishment_needed_count: number;
   excess_stock_count: number;
   healthy_count: number;
@@ -830,7 +875,7 @@ export async function fetchInventoryRecommendations(params?: {
   url.searchParams.set("dashboard_id", params?.dashboard_id || "default");
   if (params?.status) url.searchParams.set("status", params.status);
   if (params?.search) url.searchParams.set("search", params.search);
-  if (params?.limit) url.searchParams.set("limit", params.limit.toString());
+  if (params?.limit !== undefined && params.limit > 0) url.searchParams.set("limit", params.limit.toString());
 
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error("Failed to fetch inventory recommendations.");
@@ -852,6 +897,33 @@ export async function simulateInventory(
 
 export function getInventoryDownloadURL(dashboardId = "default"): string {
   return `${API_BASE}/inventory/download?dashboard_id=${encodeURIComponent(dashboardId)}`;
+}
+
+export function getInventoryExcelDownloadURL(dashboardId = "default"): string {
+  return `${API_BASE}/inventory/export-excel?dashboard_id=${encodeURIComponent(dashboardId)}`;
+}
+
+export async function emailInventoryReport(params: {
+  recipient_email?: string;
+  subject?: string;
+  message?: string;
+  dashboardId?: string;
+}): Promise<{ success: boolean; message: string; status?: string; demo_mode?: boolean }> {
+  const dashboardId = params.dashboardId || "default";
+  const res = await fetch(`${API_BASE}/inventory/email-report?dashboard_id=${encodeURIComponent(dashboardId)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      recipient_email: params.recipient_email,
+      subject: params.subject,
+      message: params.message
+    })
+  });
+  if (!res.ok) {
+    const errJson = await res.json().catch(() => ({}));
+    throw new Error(errJson.detail || "Failed to send inventory report email.");
+  }
+  return res.json();
 }
 
 // =============================================================================

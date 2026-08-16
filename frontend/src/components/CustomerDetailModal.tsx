@@ -60,7 +60,7 @@ export const CustomerDetailModal: React.FC<ModalProps> = ({ customerId, onClose 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
               <div style={{ padding: 16, background: 'rgba(255, 255, 255, 0.03)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.05)' }}>
                 <div style={{ fontSize: '0.8rem', color: '#94A3B8', marginBottom: 4 }}>Likelihood of Stopping</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: detail.churn_probability >= 0.70 ? '#EF4444' : detail.churn_probability >= 0.40 ? '#F59E0B' : '#10B981' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: detail.churn_probability >= 0.70 ? '#EC4899' : detail.churn_probability >= 0.40 ? '#F59E0B' : '#10B981' }}>
                   {(detail.churn_probability * 100).toFixed(0)}% Likely
                 </div>
               </div>
@@ -76,15 +76,15 @@ export const CustomerDetailModal: React.FC<ModalProps> = ({ customerId, onClose 
                 <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: 2 }}>Daily run-rate estimate (÷3.0)</div>
               </div>
 
-              <div style={{ padding: 16, background: 'rgba(255, 255, 255, 0.03)', borderRadius: 12, border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                <div style={{ fontSize: '0.8rem', color: '#FCA5A5', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ padding: 16, background: 'rgba(255, 255, 255, 0.03)', borderRadius: 12, border: '1px solid rgba(236, 72, 153, 0.2)' }}>
+                <div style={{ fontSize: '0.8rem', color: '#F472B6', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span>Company May Lose</span>
                   <span title="Estimated 30-day loss exposure based on churn probability × estimated 30-day spend. Estimated business exposure, not a guaranteed loss." style={{ cursor: 'help' }}>
-                    <Info size={13} color="#FCA5A5" />
+                    <Info size={13} color="#F472B6" />
                   </span>
                 </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#EF4444' }}>&pound;{detail.company_may_lose_30d.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</div>
-                <div style={{ fontSize: '0.72rem', color: '#FCA5A5', marginTop: 2 }}>↓ {detail.loss_percentage_30d.toFixed(1)}% of expected 30-day spend</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#EC4899' }}>&pound;{detail.company_may_lose_30d.toLocaleString('en-GB', { minimumFractionDigits: 2 })}</div>
+                <div style={{ fontSize: '0.72rem', color: '#F472B6', marginTop: 2 }}>↓ {detail.loss_percentage_30d.toFixed(1)}% of expected 30-day spend</div>
               </div>
 
               <div style={{ padding: 16, background: 'rgba(255, 255, 255, 0.03)', borderRadius: 12, border: '1px solid rgba(255, 255, 255, 0.05)' }}>

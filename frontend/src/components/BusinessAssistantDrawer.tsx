@@ -20,13 +20,11 @@ interface AssistantProps {
 
 // Structured response renderer for AI messages to eliminate walls of text
 const FormattedAIResponse: React.FC<{ text: string; onNavigateTab?: (tab: string) => void; suggestedTab?: string }> = ({ text, onNavigateTab, suggestedTab }) => {
-  // Parse text into structured sections and extract stats for visual cards
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
 
-  // Extract monetary numbers, customer counts, and risk groups if present
   const moneyMatch = text.match(/£[\d,]+(\.\d{2})?/g);
   const countMatch = text.match(/(\b\d{1,3}(,\d{3})*|\b\d+)\s+(customers|accounts|users)/i);
-  const segmentMatch = text.match(/(High-Value At Risk|Active Casuals|High-Value Champions|Low-Value \/ Dormant)/i);
+  const segmentMatch = text.match(/(Top VIP Customers|At-Risk VIP Customers|Active Customers|Inactive \/ Dormant Customers|High-Value At Risk|Active Casuals|High-Value Champions|Low-Value \/ Dormant)/i);
 
   const renderFormattedText = (content: string) => {
     const parts = content.split(/(\*\*.*?\*\*)/g);
@@ -42,9 +40,69 @@ const FormattedAIResponse: React.FC<{ text: string; onNavigateTab?: (tab: string
     });
   };
 
+  type Block =
+    | { type: 'header'; text: string }
+    | { type: 'paragraph'; text: string }
+    | { type: 'product_card'; items: string[] }
+    | { type: 'bullet'; text: string };
+
+  const blocks: Block[] = [];
+  let currentProductItems: string[] | null = null;
+
+  const isPrimaryProductKey = (str: string) => {
+    const clean = str.replace(/^[-•*]\s*/, '').replace(/\*/g, '').trim();
+    return /^(StockCode|Stock Code|Product Code|Product ID|SKU|Item ID|Item Code)/i.test(clean);
+  };
+
+  const isProductAttrKey = (str: string) => {
+    const clean = str.replace(/^[-•*]\s*/, '').replace(/\*/g, '').trim();
+    return /^(Product Name|Product|Days Remaining|Units Available|Units|Current Price|Price|Discount|Revenue|Status|Clearance Price)/i.test(clean);
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (line.startsWith('#') || line.startsWith('###') || line.startsWith('🎯') || line.startsWith('✨') || line.startsWith('🚨') || line.startsWith('💥') || line.startsWith('📦')) {
+      if (currentProductItems) {
+        blocks.push({ type: 'product_card', items: currentProductItems });
+        currentProductItems = null;
+      }
+      blocks.push({ type: 'header', text: line.replace(/^[#\s]+/, '') });
+      continue;
+    }
+
+    if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*')) {
+      const cleanText = line.replace(/^[-•*]\s*/, '');
+
+      if (isPrimaryProductKey(line)) {
+        if (currentProductItems) {
+          blocks.push({ type: 'product_card', items: currentProductItems });
+        }
+        currentProductItems = [cleanText];
+      } else if (currentProductItems) {
+        currentProductItems.push(cleanText);
+      } else if (isProductAttrKey(line)) {
+        currentProductItems = [cleanText];
+      } else {
+        blocks.push({ type: 'bullet', text: cleanText });
+      }
+      continue;
+    }
+
+    if (currentProductItems) {
+      blocks.push({ type: 'product_card', items: currentProductItems });
+      currentProductItems = null;
+    }
+    blocks.push({ type: 'paragraph', text: line });
+  }
+
+  if (currentProductItems) {
+    blocks.push({ type: 'product_card', items: currentProductItems });
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '1rem', lineHeight: 1.65 }}>
-      
+
       {/* Auto-extracted Metric Highlight Cards if available */}
       {(moneyMatch || countMatch || segmentMatch) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', margin: '4px 0 8px 0' }}>
@@ -83,30 +141,55 @@ const FormattedAIResponse: React.FC<{ text: string; onNavigateTab?: (tab: string
         </div>
       )}
 
-      {/* Paragraph and Bullet formatting */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {lines.map((line, idx) => {
-          if (line.startsWith('#') || line.startsWith('###') || line.startsWith('🎯') || line.startsWith('✨')) {
+      {/* Structured Blocks Rendering */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {blocks.map((block, idx) => {
+          if (block.type === 'header') {
             return (
-              <h4 key={idx} style={{ color: '#818CF8', fontSize: '1.1rem', fontWeight: 800, margin: '10px 0 4px 0' }}>
-                {renderFormattedText(line.replace(/^[#\s]+/, ''))}
+              <h4 key={idx} style={{ color: '#818CF8', fontSize: '1.1rem', fontWeight: 800, margin: '12px 0 4px 0' }}>
+                {renderFormattedText(block.text)}
               </h4>
             );
           }
 
-          if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*')) {
-            const cleanText = line.replace(/^[-•*]\s*/, '');
+          if (block.type === 'product_card') {
+            return (
+              <div
+                key={idx}
+                style={{
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  border: '1px solid rgba(99, 102, 241, 0.35)',
+                  borderRadius: '14px',
+                  padding: '16px 20px',
+                  margin: '4px 0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)'
+                }}
+              >
+                {block.items.map((item, itemIdx) => (
+                  <div key={itemIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.96rem', color: '#E2E8F0' }}>
+                    <span style={{ color: '#818CF8', fontSize: '0.85rem', marginTop: '2px' }}>•</span>
+                    <span style={{ flex: 1, lineHeight: 1.5 }}>{renderFormattedText(item)}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          }
+
+          if (block.type === 'bullet') {
             return (
               <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px', borderLeft: '3px solid rgba(99, 102, 241, 0.5)' }}>
                 <span style={{ fontSize: '1.05rem', color: '#94A3B8' }}>•</span>
-                <span style={{ color: '#E2E8F0', fontSize: '0.98rem' }}>{renderFormattedText(cleanText)}</span>
+                <span style={{ color: '#E2E8F0', fontSize: '0.98rem' }}>{renderFormattedText(block.text)}</span>
               </div>
             );
           }
 
           return (
             <p key={idx} style={{ color: '#CBD5E1', margin: 0, fontSize: '1rem', lineHeight: 1.65 }}>
-              {renderFormattedText(line)}
+              {renderFormattedText(block.text)}
             </p>
           );
         })}
@@ -214,18 +297,12 @@ export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onCl
     }
   };
 
-  const sampleQuestions = [
-    "🎯 Who needs my attention?",
-    "💷 How much revenue could I lose in the next 30 days?",
-    "📊 What is my expected 30-day revenue?",
-    "👥 Which customer group should I focus on?",
-    "💡 What should I do today?"
-  ];
+
 
   return (
     <>
       {/* Floating Action AI Button Fixed at Bottom-Right */}
-      <div 
+      <div
         style={{
           position: 'fixed',
           bottom: '28px',
@@ -264,7 +341,7 @@ export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onCl
       {isOpen && (
         <>
           {/* Dimmed Blurred Backdrop Overlay */}
-          <div 
+          <div
             style={{
               position: 'fixed',
               inset: 0,
@@ -278,7 +355,7 @@ export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onCl
           />
 
           {/* Centered Large Floating AI Workspace Modal (~50% width desktop) */}
-          <div 
+          <div
             style={{
               position: 'fixed',
               top: '50%',
@@ -320,12 +397,12 @@ export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onCl
                 </div>
               </div>
 
-              <button 
-                onClick={onClose} 
-                style={{ 
-                  background: 'rgba(255, 255, 255, 0.05)', 
-                  border: '1px solid rgba(255, 255, 255, 0.1)', 
-                  color: '#94A3B8', 
+              <button
+                onClick={onClose}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#94A3B8',
                   borderRadius: '50%',
                   width: '40px',
                   height: '40px',
@@ -354,7 +431,7 @@ export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onCl
             <div style={{ flex: 1, padding: '28px 32px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
               {messages.map((msg, idx) => (
                 <div key={idx} style={{ display: 'flex', gap: '16px', flexDirection: msg.sender === 'user' ? 'row-reverse' : 'row' }}>
-                  
+
                   {/* Avatar */}
                   <div style={{
                     width: '42px',
@@ -392,7 +469,7 @@ export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onCl
                         <ShieldCheck size={14} color="#10B981" /> Grounded in {msg.sourceGrounding}
                       </div>
                     )}
-                    
+
                     <div style={{ fontSize: '0.72rem', color: msg.sender === 'user' ? 'rgba(255,255,255,0.7)' : '#64748B', marginTop: '10px', textAlign: msg.sender === 'user' ? 'right' : 'left' }}>
                       {msg.timestamp}
                     </div>
@@ -416,42 +493,7 @@ export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onCl
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Quick Suggestion Chips */}
-            <div style={{ padding: '12px 32px', borderTop: '1px solid rgba(255, 255, 255, 0.06)', display: 'flex', gap: '10px', overflowX: 'auto', scrollbarWidth: 'none', background: 'rgba(15, 23, 42, 0.4)' }}>
-              {sampleQuestions.map((q, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSend(q.replace(/^[^\w\s]+\s*/, ''))}
-                  style={{
-                    whiteSpace: 'nowrap',
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    color: '#CBD5E1',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    padding: '8px 16px',
-                    borderRadius: '20px',
-                    fontSize: '0.88rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)';
-                    e.currentTarget.style.color = '#FFFFFF';
-                    e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.4)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                    e.currentTarget.style.color = '#CBD5E1';
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                  }}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
+
 
             {/* Input Box */}
             <div style={{ padding: '20px 32px 28px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', background: 'rgba(18, 24, 38, 0.9)' }}>
@@ -489,7 +531,7 @@ export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onCl
                   <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '3px' }}>
                     <CornerDownLeft size={12} /> Enter
                   </span>
-                  
+
                   <button
                     onClick={() => handleSend()}
                     disabled={!isAvailable || loading || !input.trim()}
@@ -517,7 +559,8 @@ export const BusinessAssistantDrawer: React.FC<AssistantProps> = ({ isOpen, onCl
         </>
       )}
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes modalEntrance {
           from { opacity: 0; transform: translate(-50%, -46%) scale(0.96); }
           to { opacity: 1; transform: translate(-50%, -50%) scale(1); }

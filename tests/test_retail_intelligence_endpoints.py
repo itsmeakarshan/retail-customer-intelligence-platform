@@ -30,6 +30,9 @@ def test_forecasting_products_endpoint():
     assert "stock_code" in first
     assert "expected_30d_demand" in first
     assert "recent_30d_demand" in first
+    assert "trend_pct" in first
+    assert "trend_direction" in first
+    assert first["trend_direction"] in ["Rising", "Falling", "Stable"]
 
 
 def test_forecasting_product_detail_endpoint():
@@ -41,6 +44,9 @@ def test_forecasting_product_detail_endpoint():
     assert "history" in data
     assert "forecast" in data
     assert len(data["forecast"]) == 30
+    assert "trend_pct" in data
+    assert "trend_direction" in data
+    assert data["trend_direction"] in ["Rising", "Falling", "Stable"]
     first_f = data["forecast"][0]
     assert "forecast_units" in first_f
     assert "lower_bound" in first_f
@@ -136,3 +142,33 @@ def test_csv_download_endpoints():
     assert mon_resp.status_code == 200
     assert "text/csv" in mon_resp.headers["content-type"]
     assert "feature_name" in mon_resp.text
+
+
+def test_inventory_excel_export_endpoint():
+    """Tests GET /api/inventory/export-excel generates a valid .xlsx workbook."""
+    import io
+    import openpyxl
+
+    resp = client.get("/api/inventory/export-excel?dashboard_id=default")
+    assert resp.status_code == 200
+    assert "spreadsheetml" in resp.headers["content-type"]
+    assert len(resp.content) > 100000
+
+    wb = openpyxl.load_workbook(io.BytesIO(resp.content))
+    assert "Inventory Recommendations" in wb.sheetnames
+    assert "Executive Summary" in wb.sheetnames
+    assert "Excluded Products" in wb.sheetnames
+
+
+def test_inventory_email_report_endpoint():
+    """Tests POST /api/inventory/email-report attaches the Excel workbook."""
+    payload = {
+        "recipient_email": "akarshanrasyal4@gmail.com",
+        "subject": "Retail Inventory Replenishment Report",
+        "message": "Please find attached the latest report."
+    }
+    resp = client.post("/api/inventory/email-report?dashboard_id=default", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "status" in data
+    assert "audit_id" in data
