@@ -1,0 +1,47 @@
+# Python Virtual Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Large Datasets & Processed Files (not needed in serverless runtime)
+data/raw/
+data/processed/clean_transactions.csv
+data/processed/clean_transactions.parquet
+data/processed/customer_features.csv
+data/processed/customer_features.parquet
+data/processed/temporal_splits/
+data/uploads/*
+!data/uploads/.gitkeep
+
+# Development, tests, and documentation
+tests/
+backend/tests/
+notebooks/
+docs/
+*.md
+!README.md
+scripts/
+
+# Frontend source & build artifacts (frontend is built separately on Vite)
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# Caches and runtime artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+*.log
+
+# Git & Editor metadata
+.git/
+.github/
+.DS_Store
+.DS_Store?
+._*
+.vscode/
+.idea/
