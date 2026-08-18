@@ -1,0 +1,40 @@
+{
+  "best_model_name": "Random Forest Regressor",
+  "best_model_metrics": {
+    "mae": 400.53,
+    "rmse": 1354.16,
+    "r2": 0.8875
+  },
+  "all_models_metrics": {
+    "Baseline (Mean)": {
+      "mae": 831.35,
+      "rmse": 4038.71,
+      "r2": -0.0003
+    },
+    "Ridge Regression": {
+      "mae": 525.79,
+      "rmse": 1393.53,
+      "r2": 0.8809
+    },
+    "Huber Regressor": {
+      "mae": 393.46,
+      "rmse": 1605.47,
+      "r2": 0.8419
+    },
+    "Random Forest Regressor": {
+      "mae": 400.53,
+      "rmse": 1354.16,
+      "r2": 0.8875
+    },
+    "Gradient Boosting Regressor": {
+      "mae": 428.92,
+      "rmse": 1797.47,
+      "r2": 0.8019
+    },
+    "LightGBM Regressor": {
+      "mae": 576.07,
+      "rmse": 2977.67,
+      "r2": 0.4562
+    }
+  }
+}

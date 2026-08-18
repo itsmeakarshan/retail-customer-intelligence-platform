@@ -16,14 +16,28 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
+BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+for p in [PROJECT_ROOT, BACKEND_ROOT]:
+    if os.path.exists(p) and p not in sys.path:
+        sys.path.insert(0, p)
 
 from ml.src.forecasting.demand_forecaster import DemandForecaster, calculate_trend_momentum
 from ml.src.forecasting.inventory_optimizer import InventoryOptimizer
 from ml.src.pricing.price_elasticity import PriceElasticityEngine
 from ml.src.monitoring.drift_detector import DriftMonitor
-DB_PATH = os.getenv("DATABASE_PATH", os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db"))
+DB_PATH = os.getenv("DATABASE_PATH")
+if not DB_PATH or not os.path.exists(DB_PATH):
+    for cand in [
+        os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db"),
+        os.path.join(BACKEND_ROOT, "data/processed/retail_analytics.db"),
+        os.path.join(BACKEND_ROOT, "retail_analytics.db"),
+        "data/processed/retail_analytics.db",
+    ]:
+        if os.path.exists(cand):
+            DB_PATH = os.path.abspath(cand)
+            break
+    if not DB_PATH:
+        DB_PATH = os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db")
 
 logger = logging.getLogger(__name__)
 
@@ -407,7 +421,7 @@ class RetailIntelligenceService:
                         rows = db.execute(text("SELECT * FROM inventory_recommendations_cache ORDER BY is_eligible DESC, stock_code ASC")).mappings().fetchall()
                     else:
                         import sqlite3
-                        sqlite_conn = sqlite3.connect(os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db"))
+                        sqlite_conn = sqlite3.connect(DB_PATH)
                         c = sqlite_conn.cursor()
                         c.execute("SELECT * FROM inventory_recommendations_cache ORDER BY is_eligible DESC, stock_code ASC")
                         col_names = [d[0] for d in c.description]

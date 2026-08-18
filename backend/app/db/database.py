@@ -9,7 +9,22 @@ from sqlalchemy.orm import sessionmaker
 
 # Path relative to workspace root or environment override
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-DB_PATH = os.getenv("DATABASE_PATH", os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db"))
+BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+
+DB_PATH = os.getenv("DATABASE_PATH")
+if not DB_PATH or not os.path.exists(DB_PATH):
+    for cand in [
+        os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db"),
+        os.path.join(BACKEND_ROOT, "data/processed/retail_analytics.db"),
+        os.path.join(BACKEND_ROOT, "retail_analytics.db"),
+        "data/processed/retail_analytics.db",
+    ]:
+        if os.path.exists(cand):
+            DB_PATH = os.path.abspath(cand)
+            break
+    if not DB_PATH:
+        DB_PATH = os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db")
+
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
 
 engine = create_engine(

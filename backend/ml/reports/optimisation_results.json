@@ -1,0 +1,74 @@
+{
+  "baseline_oot_roc_auc": 0.8022,
+  "baseline_oot_pr_auc": 0.8252,
+  "optimised_oot_roc_auc": 0.8062,
+  "optimised_oot_pr_auc": 0.8295,
+  "improvement_roc_auc": 0.004,
+  "uncalibrated_brier": 0.1929,
+  "calibrated_brier": 0.1929,
+  "selected_features": [
+    "recency",
+    "frequency",
+    "monetary",
+    "total_orders",
+    "total_items",
+    "gross_revenue",
+    "average_order_value",
+    "average_quantity",
+    "unique_products",
+    "customer_lifetime_days",
+    "days_since_first_purchase",
+    "average_days_between_orders",
+    "max_days_between_orders",
+    "cancellation_count",
+    "cancellation_rate",
+    "cancelled_revenue",
+    "recent_spend_90d",
+    "historical_spend_prior",
+    "spend_trend",
+    "order_frequency_trend",
+    "recent_order_count_90d",
+    "recency_acceleration",
+    "spending_momentum",
+    "product_diversity_ratio",
+    "cancellation_revenue_ratio",
+    "purchase_frequency_rate",
+    "country"
+  ],
+  "best_hyperparameters": {
+    "n_estimators": 100,
+    "learning_rate": 0.03,
+    "num_leaves": 15,
+    "max_depth": 4,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "reg_alpha": 1.0,
+    "reg_lambda": 1.0
+  },
+  "cutoff_A_metrics": {
+    "cutoff": "Cutoff A (2011-03-10)",
+    "roc_auc": 0.8183,
+    "pr_auc": 0.8814,
+    "brier": 0.1548
+  },
+  "cutoff_B_metrics": {
+    "cutoff": "Cutoff B (2011-06-10)",
+    "roc_auc": 0.8552,
+    "pr_auc": 0.9191,
+    "brier": 0.136
+  },
+  "cutoff_C_metrics": {
+    "cutoff": "Cutoff C (2011-09-10)",
+    "roc_auc": 0.8062,
+    "pr_auc": 0.8295,
+    "brier": 0.1929
+  },
+  "top_500_metrics": {
+    "precision_top_500": 0.922,
+    "recall_top_500": 0.151,
+    "churn_captured_top_500": 461,
+    "total_churners": 3052,
+    "revenue_risk_captured_top_500_gbp": 13408.54,
+    "revenue_risk_captured_pct": 1.56
+  }
+}

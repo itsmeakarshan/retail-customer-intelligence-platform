@@ -9,8 +9,35 @@ import pandas as pd
 import numpy as np
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-MODELS_DIR = os.path.join(PROJECT_ROOT, "ml/models")
-REPORTS_DIR = os.path.join(PROJECT_ROOT, "ml/reports")
+BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
+
+MODELS_DIR = os.getenv("MODELS_DIR")
+if not MODELS_DIR or not os.path.exists(MODELS_DIR):
+    for cand in [
+        os.path.join(PROJECT_ROOT, "ml/models"),
+        os.path.join(BACKEND_ROOT, "ml/models"),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "../ml/models")),
+        "ml/models",
+    ]:
+        if os.path.exists(cand):
+            MODELS_DIR = os.path.abspath(cand)
+            break
+    if not MODELS_DIR:
+        MODELS_DIR = os.path.join(PROJECT_ROOT, "ml/models")
+
+REPORTS_DIR = os.getenv("REPORTS_DIR")
+if not REPORTS_DIR or not os.path.exists(REPORTS_DIR):
+    for cand in [
+        os.path.join(PROJECT_ROOT, "ml/reports"),
+        os.path.join(BACKEND_ROOT, "ml/reports"),
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "../ml/reports")),
+        "ml/reports",
+    ]:
+        if os.path.exists(cand):
+            REPORTS_DIR = os.path.abspath(cand)
+            break
+    if not REPORTS_DIR:
+        REPORTS_DIR = os.path.join(PROJECT_ROOT, "ml/reports")
 
 class InferenceService:
     def __init__(self):
