@@ -24,11 +24,6 @@ def resolve_db_path() -> str:
     if env_db:
         return env_db
 
-    is_serverless = (
-        os.getenv("VERCEL") == "1"
-        or os.getenv("AWS_LAMBDA_FUNCTION_NAME") is not None
-        or not os.access(os.path.dirname(__file__), os.W_OK)
-    )
     tmp_db_path = "/tmp/retail_analytics.db"
 
     # If /tmp/retail_analytics.db already exists and is non-empty, use it
@@ -50,29 +45,38 @@ def resolve_db_path() -> str:
     for cand in source_candidates:
         if os.path.exists(cand):
             if cand.endswith(".gz"):
-                target_path = tmp_db_path if is_serverless else os.path.join(os.path.dirname(cand), "retail_analytics.db")
+                # First try extracting directly to /tmp
                 try:
-                    os.makedirs(os.path.dirname(target_path), exist_ok=True)
-                    if not os.path.exists(target_path) or os.path.getsize(target_path) < 1024 * 1024:
-                        with gzip.open(cand, "rb") as f_in:
-                            with open(target_path, "wb") as f_out:
-                                shutil.copyfileobj(f_in, f_out)
-                    return target_path
+                    with gzip.open(cand, "rb") as f_in:
+                        with open(tmp_db_path, "wb") as f_out:
+                            shutil.copyfileobj(f_in, f_out)
+                    return tmp_db_path
                 except Exception as e:
-                    print(f"[DB] Error extracting compressed DB from {cand}: {e}")
-            else:
-                if is_serverless:
+                    print(f"[DB] Extraction to {tmp_db_path} notice: {e}")
+                    # Try extracting beside the .gz if /tmp failed
+                    local_target = os.path.join(os.path.dirname(cand), "retail_analytics.db")
                     try:
-                        shutil.copyfile(cand, tmp_db_path)
-                        return tmp_db_path
-                    except Exception as e:
-                        print(f"[DB] Error copying DB to /tmp from {cand}: {e}")
-                        return cand
-                return cand
+                        with gzip.open(cand, "rb") as f_in:
+                            with open(local_target, "wb") as f_out:
+                                shutil.copyfileobj(f_in, f_out)
+                        return local_target
+                    except Exception:
+                        pass
+            else:
+                # If uncompressed file exists
+                # In serverless or read-only, copy to /tmp for write access
+                try:
+                    shutil.copyfile(cand, tmp_db_path)
+                    return tmp_db_path
+                except Exception:
+                    return cand
 
     # Default fallback for fresh local setups
     local_default = os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db")
-    os.makedirs(os.path.dirname(local_default), exist_ok=True)
+    try:
+        os.makedirs(os.path.dirname(local_default), exist_ok=True)
+    except Exception:
+        return tmp_db_path
     return local_default
 
 DB_PATH = resolve_db_path()

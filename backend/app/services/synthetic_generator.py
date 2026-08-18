@@ -39,11 +39,20 @@ def init_synthetic_tables(db_path: str = DB_PATH):
     Creates and populates synthetic demo metadata tables if not already present.
     Uses deterministic seeding for reproducibility across restarts.
     """
-    if not os.path.exists(db_path):
+    if not db_path or not os.path.exists(db_path):
         print(f"[SyntheticGenerator] Database not found at {db_path}")
         return
 
-    conn = sqlite3.connect(db_path)
+    try:
+        conn = sqlite3.connect(db_path)
+        try:
+            _populate_synthetic_data(conn)
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"[SyntheticGenerator Notice] {e}")
+
+def _populate_synthetic_data(conn: sqlite3.Connection):
     c = conn.cursor()
 
     # 1. Create customer_demo_metadata table
@@ -230,7 +239,6 @@ def init_synthetic_tables(db_path: str = DB_PATH):
         """, sample_logs)
 
     conn.commit()
-    conn.close()
 
 if __name__ == "__main__":
     init_synthetic_tables()

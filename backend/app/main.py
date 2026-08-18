@@ -37,13 +37,24 @@ app = FastAPI(
 
 @app.on_event("startup")
 def on_startup():
-    init_synthetic_tables()
-    init_indexes()
-    db = SessionLocal()
     try:
-        retail_intelligence_service.warm_up_cache(db=db)
-    finally:
-        db.close()
+        init_synthetic_tables()
+    except Exception as e:
+        print(f"[Startup Notice] init_synthetic_tables: {e}")
+
+    try:
+        init_indexes()
+    except Exception as e:
+        print(f"[Startup Notice] init_indexes: {e}")
+
+    try:
+        db = SessionLocal()
+        try:
+            retail_intelligence_service.warm_up_cache(db=db)
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[Startup Notice] warm_up_cache: {e}")
 
 # Enable CORS for local React Frontend (Vite default port 5173 / 3000)
 app.add_middleware(
