@@ -25,19 +25,7 @@ from ml.src.forecasting.demand_forecaster import DemandForecaster, calculate_tre
 from ml.src.forecasting.inventory_optimizer import InventoryOptimizer
 from ml.src.pricing.price_elasticity import PriceElasticityEngine
 from ml.src.monitoring.drift_detector import DriftMonitor
-DB_PATH = os.getenv("DATABASE_PATH")
-if not DB_PATH or not os.path.exists(DB_PATH):
-    for cand in [
-        os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db"),
-        os.path.join(BACKEND_ROOT, "data/processed/retail_analytics.db"),
-        os.path.join(BACKEND_ROOT, "retail_analytics.db"),
-        "data/processed/retail_analytics.db",
-    ]:
-        if os.path.exists(cand):
-            DB_PATH = os.path.abspath(cand)
-            break
-    if not DB_PATH:
-        DB_PATH = os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db")
+from ..db.database import DB_PATH
 
 logger = logging.getLogger(__name__)
 

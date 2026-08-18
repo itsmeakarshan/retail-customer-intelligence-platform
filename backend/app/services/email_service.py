@@ -19,8 +19,7 @@ import httpx
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-DB_PATH = os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db")
+from ..db.database import DB_PATH
 
 class EmailService:
     def __init__(self, db_path: str = DB_PATH):

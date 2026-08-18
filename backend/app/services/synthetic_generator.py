@@ -18,8 +18,7 @@ import os
 import random
 from datetime import datetime, timedelta
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
-DB_PATH = os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db")
+from ..db.database import DB_PATH
 
 def calculate_recommended_discount(days_remaining: int) -> float:
     if days_remaining >= 31:
