@@ -4,6 +4,7 @@ Integrates Demand Forecasting, Inventory Optimisation, Price Analytics, and Mode
 Provides high-performance in-memory caching and session isolation for both default SQLite database
 and uploaded customer CSV session dashboards.
 """
+import sys
 import os
 import json
 import logging
@@ -14,11 +15,14 @@ import numpy as np
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 from ml.src.forecasting.demand_forecaster import DemandForecaster, calculate_trend_momentum
 from ml.src.forecasting.inventory_optimizer import InventoryOptimizer
 from ml.src.pricing.price_elasticity import PriceElasticityEngine
 from ml.src.monitoring.drift_detector import DriftMonitor
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
 DB_PATH = os.getenv("DATABASE_PATH", os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db"))
 
 logger = logging.getLogger(__name__)

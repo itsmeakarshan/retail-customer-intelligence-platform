@@ -17,6 +17,13 @@ for p in [PROJECT_ROOT, BACKEND_ROOT]:
 # Load environment variables from root .env file
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
+if not __package__:
+    if os.path.exists(os.path.join(PROJECT_ROOT, "backend")):
+        __package__ = "backend.app"
+    else:
+        __package__ = "app"
+
+
 from .api.endpoints import router as api_router
 from .services.synthetic_generator import init_synthetic_tables
 from .services.retail_intelligence_service import retail_intelligence_service
