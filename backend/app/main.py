@@ -7,18 +7,20 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Ensure workspace root is in python path
+# Ensure workspace root and backend directory are in python path
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
+BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
+for p in [PROJECT_ROOT, BACKEND_ROOT]:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
 # Load environment variables from root .env file
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
-from backend.app.api.endpoints import router as api_router
-from backend.app.services.synthetic_generator import init_synthetic_tables
-from backend.app.services.retail_intelligence_service import retail_intelligence_service
-from backend.app.db.database import SessionLocal, init_indexes
+from .api.endpoints import router as api_router
+from .services.synthetic_generator import init_synthetic_tables
+from .services.retail_intelligence_service import retail_intelligence_service
+from .db.database import SessionLocal, init_indexes
 
 app = FastAPI(
     title="Customer Intelligence & Revenue Risk Platform API",
@@ -57,4 +59,5 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=True)
+    app_target = "backend.app.main:app" if os.path.exists(os.path.join(PROJECT_ROOT, "backend")) else "app.main:app"
+    uvicorn.run(app_target, host="0.0.0.0", port=8000, reload=True)

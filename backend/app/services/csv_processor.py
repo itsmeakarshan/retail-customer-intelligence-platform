@@ -13,7 +13,7 @@ import numpy as np
 from datetime import datetime
 from typing import Dict, Any, List, Tuple
 
-from backend.app.services.inference import inference_service
+from .inference import inference_service
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
 UPLOADS_DIR = os.path.join(PROJECT_ROOT, "data/uploads")
@@ -619,7 +619,7 @@ class CSVProcessor:
         mon_csv_path = os.path.join(session_dir, "monitoring_report.csv")
 
         # Demand Forecasting
-        from backend.app.services.retail_intelligence_service import retail_intelligence_service
+        from .retail_intelligence_service import retail_intelligence_service
         try:
             fc_list = retail_intelligence_service.get_product_demand_list(session_dir=session_dir, limit=100)
             if fc_list:

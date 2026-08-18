@@ -12,13 +12,15 @@ import json
 import math
 from typing import Optional, List, Dict, Any
 
-from backend.app.db.database import get_db
-from backend.app.schemas import schemas
-from backend.app.services.inference import inference_service
-from backend.app.services.ai_assistant import ai_assistant_service
-from backend.app.services.email_service import email_service
-from backend.app.services.csv_processor import csv_processor
-from backend.app.services.retail_intelligence_service import retail_intelligence_service
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+
+from ..db.database import get_db
+from ..schemas import schemas
+from ..services.inference import inference_service
+from ..services.ai_assistant import ai_assistant_service
+from ..services.email_service import email_service
+from ..services.csv_processor import csv_processor
+from ..services.retail_intelligence_service import retail_intelligence_service
 
 router = APIRouter(prefix="/api")
 
