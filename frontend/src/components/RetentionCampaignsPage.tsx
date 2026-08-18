@@ -8,7 +8,6 @@ import {
   createCampaign,
   previewEmail,
   sendTestEmail,
-  fetchCampaignHistory,
   fetchEmailStatus
 } from '../services/api';
 import type {
@@ -26,15 +25,12 @@ import {
   Sparkles,
   ShieldCheck,
   CheckCircle,
-  Clock,
   UserCheck,
   Mail,
   RefreshCw,
   Gift,
   XCircle,
-  Search,
-  CheckSquare,
-  Square
+  Search
 } from 'lucide-react';
 
 import { RecommendedActionCard } from './RecommendedActionCard';
@@ -44,10 +40,8 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
   const [recommended, setRecommended] = useState<RecommendedCampaign[]>([]);
   const [expiringProducts, setExpiringProducts] = useState<ExpiryProduct[]>([]);
   const [targetCustomers, setTargetCustomers] = useState<any[]>([]);
-  const [campaignHistory, setCampaignHistory] = useState<any[]>([]);
   void targetCustomers;
-  void campaignHistory;
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  void expiringProducts;
   const [emailStatus, setEmailStatus] = useState<EmailStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -82,24 +76,18 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
   const loadAllData = async () => {
     setLoading(true);
     try {
-      const [sumData, recData, prodData, custData, histData, statusData] = await Promise.all([
+      const [sumData, recData, prodData, custData, statusData] = await Promise.all([
         fetchRetentionSummary(activeDashboardId),
         fetchRecommendedCampaigns(activeDashboardId),
         fetchExpiryProducts('Expiring Soon'),
         fetchExpiryCustomers(),
-        fetchCampaignHistory(),
         fetchEmailStatus()
       ]);
       setSummary(sumData);
       setRecommended(recData);
       setExpiringProducts(prodData);
       setTargetCustomers(custData);
-      setCampaignHistory(histData.campaigns || []);
-      setAuditLogs(histData.audit_logs || []);
       setEmailStatus(statusData);
-      if (custData && histData) {
-        // Log telemetry
-      }
     } catch (err) {
       console.error("Failed to load retention campaign data:", err);
     } finally {
@@ -218,11 +206,6 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
         message: res.message,
         message_id: res.message_id
       });
-
-      fetchCampaignHistory().then(hist => {
-        setCampaignHistory(hist.campaigns || []);
-        setAuditLogs(hist.audit_logs || []);
-      });
     } catch (err) {
       setTestResult({
         status: 'Failed',
@@ -282,7 +265,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
 
       {/* Top Business KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-        <div className="glass-card metric-card">
+        <div className="glass-card metric-card" style={{ minHeight: '135px', padding: '22px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 600 }}>Needs Attention</span>
             <AlertTriangle size={18} color="#EC4899" />
@@ -290,10 +273,10 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#EC4899' }}>
             {summary?.customers_needing_attention.toLocaleString()}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>Accounts showing reduced activity</div>
+          <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '6px' }}>Accounts showing reduced activity</div>
         </div>
 
-        <div className="glass-card metric-card">
+        <div className="glass-card metric-card" style={{ minHeight: '135px', padding: '22px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 600 }}>At-Risk VIP Customers</span>
             <UserCheck size={18} color="#F59E0B" />
@@ -301,10 +284,10 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#F59E0B' }}>
             {summary?.high_value_customers_at_risk.toLocaleString()}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>VIP customers requiring retention</div>
+          <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '6px' }}>VIP customers requiring retention</div>
         </div>
 
-        <div className="glass-card metric-card">
+        <div className="glass-card metric-card" style={{ minHeight: '135px', padding: '22px 24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ fontSize: '0.82rem', color: '#94A3B8', fontWeight: 600 }}>Company May Lose</span>
             <PoundSterling size={18} color="#818CF8" />
@@ -312,7 +295,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
           <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#818CF8' }}>
             £{(summary?.company_may_lose_30d || (summary?.potential_revenue_at_risk ? summary.potential_revenue_at_risk / 3.0 : 0)).toLocaleString('en-GB', { maximumFractionDigits: 0 })}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#818CF8', fontWeight: 600, marginTop: '4px' }}>
+          <div style={{ fontSize: '0.78rem', color: '#818CF8', fontWeight: 600, marginTop: '6px' }}>
             ↓ {summary?.loss_percentage_30d ? summary.loss_percentage_30d.toFixed(1) : '25.8'}% of expected 30-day revenue
           </div>
         </div>
@@ -586,14 +569,12 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
           <table className="custom-table">
             <thead>
               <tr>
-                <th style={{ width: '40px' }}>
-                  <button onClick={handleSelectAllCurrentPage} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#818CF8' }}>
-                    {customerList.length > 0 && customerList.every(c => selectedCustomerIds.includes(c.customer_id)) ? (
-                      <CheckSquare size={18} />
-                    ) : (
-                      <Square size={18} />
-                    )}
-                  </button>
+                <th style={{ width: '40px', textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={customerList.length > 0 && customerList.every(c => selectedCustomerIds.includes(c.customer_id))}
+                    onChange={handleSelectAllCurrentPage}
+                  />
                 </th>
                 <th>Customer ID</th>
                 <th>Customer Group</th>
@@ -764,66 +745,6 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
             <Mail size={18} />
             Preview Email Offer ({selectedCustomerIds.length > 0 ? `${selectedCustomerIds.length} Selected` : 'Demo Account'})
           </button>
-        </div>
-      </div>
-
-      {/* Campaign History & Audit Log */}
-      <div className="glass-card" style={{ padding: '24px' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Clock size={20} color="#818CF8" /> Email Campaign Delivery Audit Log
-        </h3>
-
-        <div style={{ overflowX: 'auto' }}>
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Log ID</th>
-                <th>Timestamp</th>
-                <th>Campaign Name</th>
-                <th>Subject</th>
-                <th>Reach</th>
-                <th>Delivery Mode</th>
-                <th>Real Recipient</th>
-                <th>Brevo Message ID</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {auditLogs.length === 0 ? (
-                <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '20px', color: '#94A3B8' }}>No email delivery history yet.</td>
-                </tr>
-              ) : (
-                auditLogs.map((log) => {
-                  const isAccepted = log.status?.includes("Accepted");
-                  const isFailed = log.status?.includes("Failed");
-                  return (
-                    <tr key={log.id}>
-                      <td>#{log.id}</td>
-                      <td>{new Date(log.created_at).toLocaleString()}</td>
-                      <td style={{ fontWeight: 600 }}>{log.campaign_name}</td>
-                      <td style={{ fontSize: '0.82rem', color: '#CBD5E1' }}>{log.subject}</td>
-                      <td>{log.customer_count} cust</td>
-                      <td>
-                        <span style={{ fontSize: '0.75rem', background: 'rgba(99, 102, 241, 0.15)', color: '#818CF8', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
-                          {log.delivery_mode}
-                        </span>
-                      </td>
-                      <td style={{ fontSize: '0.82rem', color: '#F8FAFC' }}>{log.recipient}</td>
-                      <td style={{ fontSize: '0.75rem', color: '#94A3B8', fontFamily: 'monospace' }}>
-                        {log.provider_message_id ? log.provider_message_id.slice(0, 20) + '...' : '-'}
-                      </td>
-                      <td>
-                        <span className={`badge-status ${isAccepted ? 'badge-ok' : isFailed ? 'badge-error' : ''}`} style={{ background: isAccepted ? 'rgba(16, 185, 129, 0.15)' : isFailed ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: isAccepted ? '#34D399' : isFailed ? '#FCA5A5' : '#FDE047' }}>
-                          {log.status}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
         </div>
       </div>
 

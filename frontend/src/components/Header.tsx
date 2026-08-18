@@ -90,7 +90,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        <nav className="nav-tabs" style={{ display: 'flex', gap: '8px', overflowX: 'auto', flex: '1 1 auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', minWidth: '200px', justifyContent: 'flex-end' }}>
+        <nav className="nav-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', flex: '1 1 auto', justifyContent: 'space-between' }}>
           {mainTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -104,8 +104,10 @@ export const Header: React.FC<HeaderProps> = ({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
+                  flex: '1 1 auto',
                   gap: '6px',
-                  padding: '7px 12px',
+                  padding: '7px 10px',
                   borderRadius: '8px',
                   border: isAction
                     ? (isActive ? '1px solid #818CF8' : '1px solid rgba(99, 102, 241, 0.4)')

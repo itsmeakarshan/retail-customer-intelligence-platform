@@ -5,6 +5,8 @@ grounded in real database/analytics context.
 """
 import os
 import json
+import warnings
+warnings.simplefilter("ignore", category=FutureWarning)
 import google.generativeai as genai
 from typing import Dict, Any, List, Optional
 

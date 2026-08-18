@@ -247,7 +247,7 @@ export const PriceAnalyticsPage: React.FC<PriceAnalyticsPageProps> = ({
             }}
           >
             <Search size={18} color="var(--text-muted, #94A3B8)" style={{ marginRight: '8px', flexShrink: 0 }} />
-            
+
             <input
               ref={searchInputRef}
               type="text"
