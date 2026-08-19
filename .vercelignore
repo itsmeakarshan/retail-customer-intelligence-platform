@@ -4,13 +4,20 @@ env/
 venv/
 ENV/
 
-# Large Datasets & Processed Files
-data/
+# Large Datasets & Processed Files (Exclude raw CSVs & uncompressed DBs, KEEP .gz archive)
+data/raw/
+data/processed/clean_transactions.csv
+data/processed/clean_transactions.parquet
+data/processed/customer_features.csv
+data/processed/customer_features.parquet
+data/processed/temporal_splits/
+data/processed/*.db
+data/uploads/*
+!data/uploads/.gitkeep
 backend/data/processed/
 backend/data/*.db
 backend/data/*.csv
 backend/data/*.parquet
-!backend/data/retail_analytics.db.gz
 
 # Frontend caches & build output
 frontend/dist/
