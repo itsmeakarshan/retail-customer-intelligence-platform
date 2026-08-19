@@ -4,15 +4,15 @@ env/
 venv/
 ENV/
 
-# Large Datasets & Processed Files (not needed in serverless runtime)
-data/raw/
-data/processed/clean_transactions.csv
-data/processed/clean_transactions.parquet
-data/processed/customer_features.csv
-data/processed/customer_features.parquet
-data/processed/temporal_splits/
-data/uploads/*
-!data/uploads/.gitkeep
+# Large Datasets & Processed Files (excluded from serverless function package)
+data/
+backend/data/processed/
+backend/data/*.db
+backend/data/*.csv
+backend/data/*.parquet
+
+# Frontend (Frontend is built separately by Vercel static asset builder)
+frontend/
 
 # Development, tests, and documentation
 tests/
@@ -22,12 +22,6 @@ docs/
 *.md
 !README.md
 scripts/
-
-# Frontend source & build artifacts (frontend is built separately on Vite)
-frontend/node_modules/
-frontend/dist/
-frontend/build/
-frontend/.vite/
 
 # Caches and runtime artifacts
 .pytest_cache/
