@@ -292,24 +292,38 @@ def _populate_synthetic_data(conn: sqlite3.Connection):
             
             current_stock = raw_stock if raw_stock is not None and raw_stock > 0 else int(round(exp_demand * 0.8 + 10))
             
-            if current_stock < reorder_point:
+            if orders_count < 3:
+                status = 'Insufficient History'
+                status_color = 'gray'
+                status_emoji = '⚪'
+                reason = f'Insufficient transaction history ({orders_count} order(s)) for automated safety stock calculation'
+                suggested_order = 0
+                is_eligible = 0
+                exclusion_reason = f'Insufficient transaction history ({orders_count} order(s))'
+            elif current_stock < reorder_point:
                 status = 'Replenishment Needed'
                 status_color = 'red'
                 status_emoji = '🔴'
                 reason = f'Current stock ({current_stock}) is below reorder point ({reorder_point})'
                 suggested_order = max(10, reorder_point * 2 - current_stock)
+                is_eligible = 1
+                exclusion_reason = None
             elif current_stock > (exp_demand * 2.5):
                 status = 'Excess Stock'
                 status_color = 'amber'
                 status_emoji = '🟡'
                 reason = f'Current stock ({current_stock}) exceeds 2.5x 30-day forecast'
                 suggested_order = 0
+                is_eligible = 1
+                exclusion_reason = None
             else:
                 status = 'Healthy'
                 status_color = 'green'
                 status_emoji = '🟢'
                 reason = 'Inventory level is within optimal bounds'
                 suggested_order = 0
+                is_eligible = 1
+                exclusion_reason = None
                 
             stock_val = round(current_stock * unit_p, 2)
             order_cost = round(suggested_order * unit_p, 2)
@@ -326,7 +340,7 @@ def _populate_synthetic_data(conn: sqlite3.Connection):
                 stock_val, order_cost, units_at_risk, exp_days, 1 if is_expiring else 0,
                 exp_status, waste_cost, rec_text,
                 'Calculated via LightGBM & Empirical Demand Variance',
-                1, None
+                is_eligible, exclusion_reason
             ))
 
         c.executemany("""
