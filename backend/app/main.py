@@ -17,17 +17,23 @@ for p in [PROJECT_ROOT, BACKEND_ROOT]:
 # Load environment variables from root .env file
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
-if not __package__:
-    if os.path.exists(os.path.join(PROJECT_ROOT, "backend")):
-        __package__ = "backend.app"
-    else:
-        __package__ = "app"
+try:
+    from .api.endpoints import router as api_router
+    from .services.synthetic_generator import init_synthetic_tables
+    from .services.retail_intelligence_service import retail_intelligence_service
+    from .db.database import SessionLocal, init_indexes
+except (ImportError, ValueError):
+    try:
+        from app.api.endpoints import router as api_router
+        from app.services.synthetic_generator import init_synthetic_tables
+        from app.services.retail_intelligence_service import retail_intelligence_service
+        from app.db.database import SessionLocal, init_indexes
+    except (ImportError, ValueError):
+        from backend.app.api.endpoints import router as api_router
+        from backend.app.services.synthetic_generator import init_synthetic_tables
+        from backend.app.services.retail_intelligence_service import retail_intelligence_service
+        from backend.app.db.database import SessionLocal, init_indexes
 
-
-from .api.endpoints import router as api_router
-from .services.synthetic_generator import init_synthetic_tables
-from .services.retail_intelligence_service import retail_intelligence_service
-from .db.database import SessionLocal, init_indexes
 
 app = FastAPI(
     title="Customer Intelligence & Revenue Risk Platform API",

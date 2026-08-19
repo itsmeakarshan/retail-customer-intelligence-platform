@@ -14,20 +14,35 @@ import shutil
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
 BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 
+def is_valid_sqlite_db(path: str) -> bool:
+    """Checks if a SQLite database file exists, is non-empty, and passes integrity check."""
+    if not path or not os.path.exists(path) or os.path.getsize(path) < 5 * 1024 * 1024:
+        return False
+    try:
+        import sqlite3
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        c = conn.cursor()
+        c.execute("PRAGMA quick_check;")
+        row = c.fetchone()
+        conn.close()
+        return row is not None and row[0] == "ok"
+    except Exception:
+        return False
+
 def resolve_db_path() -> str:
     """
     Resolves the SQLite database path for local development and Vercel serverless environments.
     In serverless / read-only filesystem environments (like Vercel/AWS Lambda),
-    the SQLite database is extracted/copied to /tmp/retail_analytics.db so that SQLite has full read/write access.
+    the SQLite database is atomically extracted to /tmp/retail_analytics.db and verified.
     """
     env_db = os.getenv("DATABASE_PATH")
-    if env_db:
+    if env_db and is_valid_sqlite_db(env_db):
         return env_db
 
     tmp_db_path = "/tmp/retail_analytics.db"
 
-    # If /tmp/retail_analytics.db already exists and is non-empty, use it
-    if os.path.exists(tmp_db_path) and os.path.getsize(tmp_db_path) > 1024 * 1024:
+    # If /tmp/retail_analytics.db already exists and passes quick_check, return it immediately
+    if is_valid_sqlite_db(tmp_db_path):
         return tmp_db_path
 
     # Candidate source files (uncompressed and compressed .gz)
@@ -45,30 +60,35 @@ def resolve_db_path() -> str:
     for cand in source_candidates:
         if os.path.exists(cand):
             if cand.endswith(".gz"):
-                # First try extracting directly to /tmp
+                # Atomic extraction to /tmp using unique PID tempfile
+                tmp_part_path = f"{tmp_db_path}.{os.getpid()}.part"
                 try:
                     with gzip.open(cand, "rb") as f_in:
-                        with open(tmp_db_path, "wb") as f_out:
+                        with open(tmp_part_path, "wb") as f_out:
                             shutil.copyfileobj(f_in, f_out)
-                    return tmp_db_path
+                    if is_valid_sqlite_db(tmp_part_path):
+                        os.replace(tmp_part_path, tmp_db_path)
+                        return tmp_db_path
+                    else:
+                        if os.path.exists(tmp_part_path):
+                            os.remove(tmp_part_path)
                 except Exception as e:
-                    print(f"[DB] Extraction to {tmp_db_path} notice: {e}")
-                    # Try extracting beside the .gz if /tmp failed
-                    local_target = os.path.join(os.path.dirname(cand), "retail_analytics.db")
+                    print(f"[DB] Extraction error from {cand}: {e}")
+                    if os.path.exists(tmp_part_path):
+                        try:
+                            os.remove(tmp_part_path)
+                        except Exception:
+                            pass
+            else:
+                # If uncompressed file exists and is valid
+                if is_valid_sqlite_db(cand):
+                    # In serverless/read-only mode, copy to /tmp for write access
                     try:
-                        with gzip.open(cand, "rb") as f_in:
-                            with open(local_target, "wb") as f_out:
-                                shutil.copyfileobj(f_in, f_out)
-                        return local_target
+                        shutil.copyfile(cand, tmp_db_path)
+                        if is_valid_sqlite_db(tmp_db_path):
+                            return tmp_db_path
                     except Exception:
                         pass
-            else:
-                # If uncompressed file exists
-                # In serverless or read-only, copy to /tmp for write access
-                try:
-                    shutil.copyfile(cand, tmp_db_path)
-                    return tmp_db_path
-                except Exception:
                     return cand
 
     # Default fallback for fresh local setups
