@@ -351,6 +351,11 @@ def _populate_synthetic_data(conn: sqlite3.Connection):
         print(f"[SyntheticGenerator] Initialized {len(inv_rows)} inventory_recommendations_cache records.")
 
     conn.commit()
+    try:
+        from .retail_intelligence_service import retail_intelligence_service
+        retail_intelligence_service.clear_cache()
+    except Exception:
+        pass
 
 if __name__ == "__main__":
     init_synthetic_tables()

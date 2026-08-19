@@ -59,6 +59,19 @@ class RetailIntelligenceService:
         self._cache_model_insights_summary: Dict[str, Any] = {}
         self._cache_data_quality_summary: Dict[str, Any] = {}
 
+    def clear_cache(self):
+        """Clears all in-memory intelligence caches."""
+        self._df_transactions_cache = None
+        self._cache_forecast_summary.clear()
+        self._cache_forecast_products.clear()
+        self._cache_inventory_summary.clear()
+        self._cache_inventory_products.clear()
+        self._cache_pricing_summary.clear()
+        self._cache_pricing_products.clear()
+        self._cache_monitoring_summary.clear()
+        self._cache_model_insights_summary.clear()
+        self._cache_data_quality_summary.clear()
+
     def _get_transactions_df(self, db: Optional[Session] = None, session_dir: Optional[str] = None) -> pd.DataFrame:
         if session_dir:
             for fname in ["cleaned_transactions.csv", "clean_transactions.csv"]:
