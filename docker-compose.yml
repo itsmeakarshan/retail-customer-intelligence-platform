@@ -23,17 +23,15 @@ services:
         required: false
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.5-flash}
       - BREVO_API_KEY=${BREVO_API_KEY}
-      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL:-retail_ops@example.com}
-      - BREVO_SENDER_NAME=${BREVO_SENDER_NAME:-Retail Operations}
-      - DEMO_EMAIL_ADDRESS=${DEMO_EMAIL_ADDRESS:-demo_recipient@example.com}
+      - DEMO_EMAIL_ADDRESS=${DEMO_EMAIL_ADDRESS:-akarshanrasyal4@gmail.com}
     volumes:
       # Persistent bind mounts for SQLite database and trained ML models
       - ./data/processed:/app/data/processed
       - ./ml/models:/app/ml/models
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 3
