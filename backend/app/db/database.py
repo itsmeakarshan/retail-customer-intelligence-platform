@@ -15,17 +15,17 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..
 BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 
 def is_valid_sqlite_db(path: str) -> bool:
-    """Checks if a SQLite database file exists, is non-empty, and passes integrity check."""
-    if not path or not os.path.exists(path) or os.path.getsize(path) < 5 * 1024 * 1024:
+    """Checks if a SQLite database file exists, is non-empty, and has initialized tables."""
+    if not path or not os.path.exists(path) or os.path.getsize(path) < 1 * 1024 * 1024:
         return False
     try:
         import sqlite3
         conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         c = conn.cursor()
-        c.execute("PRAGMA quick_check;")
+        c.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='customers';")
         row = c.fetchone()
         conn.close()
-        return row is not None and row[0] == "ok"
+        return row is not None and row[0] > 0
     except Exception:
         return False
 
@@ -37,12 +37,14 @@ def resolve_db_path() -> str:
     """
     env_db = os.getenv("DATABASE_PATH")
     if env_db and is_valid_sqlite_db(env_db):
+        print(f"[DB] Using DATABASE_PATH environment override: {env_db}")
         return env_db
 
     tmp_db_path = "/tmp/retail_analytics.db"
 
-    # If /tmp/retail_analytics.db already exists and passes quick_check, return it immediately
+    # If /tmp/retail_analytics.db already exists and passes validation, return it immediately
     if is_valid_sqlite_db(tmp_db_path):
+        print(f"[DB] Using existing valid database at {tmp_db_path}")
         return tmp_db_path
 
     # Candidate source files (uncompressed and compressed .gz)
@@ -63,13 +65,16 @@ def resolve_db_path() -> str:
                 # Atomic extraction to /tmp using unique PID tempfile
                 tmp_part_path = f"{tmp_db_path}.{os.getpid()}.part"
                 try:
+                    print(f"[DB] Extracting database from {cand} to {tmp_db_path}...")
                     with gzip.open(cand, "rb") as f_in:
                         with open(tmp_part_path, "wb") as f_out:
                             shutil.copyfileobj(f_in, f_out)
                     if is_valid_sqlite_db(tmp_part_path):
                         os.replace(tmp_part_path, tmp_db_path)
+                        print(f"[DB] Database successfully extracted to {tmp_db_path}")
                         return tmp_db_path
                     else:
+                        print(f"[DB] Extracted database from {cand} failed validation check")
                         if os.path.exists(tmp_part_path):
                             os.remove(tmp_part_path)
                 except Exception as e:
@@ -82,13 +87,14 @@ def resolve_db_path() -> str:
             else:
                 # If uncompressed file exists and is valid
                 if is_valid_sqlite_db(cand):
-                    # In serverless/read-only mode, copy to /tmp for write access
                     try:
                         shutil.copyfile(cand, tmp_db_path)
                         if is_valid_sqlite_db(tmp_db_path):
+                            print(f"[DB] Copied database from {cand} to {tmp_db_path}")
                             return tmp_db_path
                     except Exception:
                         pass
+                    print(f"[DB] Using uncompressed database directly at {cand}")
                     return cand
 
     # Default fallback for fresh local setups
@@ -96,7 +102,9 @@ def resolve_db_path() -> str:
     try:
         os.makedirs(os.path.dirname(local_default), exist_ok=True)
     except Exception:
+        print(f"[DB] Fallback to {tmp_db_path}")
         return tmp_db_path
+    print(f"[DB] Fallback default database at {local_default}")
     return local_default
 
 DB_PATH = resolve_db_path()
