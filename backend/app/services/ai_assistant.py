@@ -219,12 +219,155 @@ class BusinessAIAssistant:
                     return records_payload
 
         # -------------------------------------------------------------
-        # 2. CUSTOMER RISK & CHURN QUERIES
+        # 2. CUSTOMER & SPEND QUERIES (Top spenders, spend thresholds, specific customer ID lookups)
+        # -------------------------------------------------------------
+        is_customer_query = any(k in q_low for k in [
+            "customer", "spen", "monetary", "value", "ltv", "spent", "spending", "bought",
+            "highest spend", "top spend", "most spend", "who spent", "top customer", "biggest customer",
+            "spent most", "spent the most", "more than", "over", "above", "greater than", "threshold",
+            "cid", "who is customer", "details for customer", "show customer"
+        ])
+
+        # Check for specific customer ID (e.g. "customer 14646", "customer ID 17841", "cid 12345")
+        m_cid = re.search(r'(?:customer\s*(?:id|#)?|cid)\s*[:=]?\s*(\d{4,6})', q_low)
+        if not m_cid and any(k in q_low for k in ["customer", "who is", "details for", "show customer", "lookup"]):
+            m_cid = re.search(r'\b(\d{5})\b', q_low)
+
+        # Check for spend threshold (e.g. "spent more than 5000", "over £1000", "above 2000")
+        m_thresh = None
+        if any(k in q_low for k in ["more than", "over", "above", "greater than", ">", "at least", "exceeding"]):
+            m_thresh = re.search(r'(?:more than|over|above|greater than|>|at least|exceeding)\s*(?:£|\$)?\s*(\d+(?:,\d+)*(?:\.\d+)?)', q_low)
+            if not m_thresh:
+                m_thresh = re.search(r'(?:spent|spend|monetary|value|revenue)\s*(?:£|\$)?\s*(\d+(?:,\d+)*(?:\.\d+)?)', q_low)
+
+        is_top_spenders = any(k in q_low for k in [
+            "spent most", "spent the most", "highest spend", "top spenders", "top spending",
+            "highest customer value", "biggest spenders", "most revenue", "top customers",
+            "who spent most", "who spent the most", "highest monetary"
+        ])
+
+        if is_customer_query or m_cid or m_thresh:
+            if session_dir:
+                cleaned_csv = os.path.join(session_dir, "cleaned_transactions.csv")
+                if os.path.exists(cleaned_csv):
+                    import pandas as pd
+                    df_up = pd.read_csv(cleaned_csv)
+                    cid_col = next((c for c in ['customer_id', 'Customer ID', 'CustomerID'] if c in df_up.columns), None)
+                    price_col = next((c for c in ['price', 'Price', 'unit_price'] if c in df_up.columns), None)
+                    qty_col = next((c for c in ['quantity', 'Quantity'] if c in df_up.columns), None)
+
+                    if cid_col and df_up[cid_col].notnull().any():
+                        df_cust = df_up[df_up[cid_col].notnull()].copy()
+                        if price_col and qty_col:
+                            df_cust['revenue'] = df_cust[price_col] * df_cust[qty_col].abs()
+                        else:
+                            df_cust['revenue'] = 0.0
+
+                        country_col = next((c for c in ['country', 'Country'] if c in df_cust.columns), None)
+                        cust_summary = df_cust.groupby(cid_col).agg(
+                            total_spend=('revenue', 'sum'),
+                            order_count=(cid_col, 'count'),
+                            country=(country_col, 'first') if country_col else (cid_col, lambda x: 'N/A')
+                        ).reset_index()
+
+                        cust_summary['customer_id'] = cust_summary[cid_col].astype(str)
+
+                        if m_cid:
+                            target_cid = str(m_cid.group(1))
+                            matched_cust = cust_summary[cust_summary['customer_id'] == target_cid]
+                            c_data = matched_cust.to_dict('records')
+                            records_payload["intent"] = "customer_specific_id"
+                            records_payload["matched"] = True
+                            records_payload["data"] = c_data
+                            records_payload["target_customer_id"] = target_cid
+                            return records_payload
+
+                        elif m_thresh:
+                            val_str = m_thresh.group(1).replace(',', '')
+                            threshold_val = float(val_str)
+                            matched_cust = cust_summary[cust_summary['total_spend'] >= threshold_val].sort_values('total_spend', ascending=False).head(20)
+                            c_data = matched_cust.to_dict('records')
+                            records_payload["intent"] = f"customers_spent_over_{threshold_val}"
+                            records_payload["matched"] = True
+                            records_payload["data"] = c_data
+                            records_payload["threshold"] = threshold_val
+                            return records_payload
+
+                        else:
+                            top_cust = cust_summary.sort_values('total_spend', ascending=False).head(10)
+                            c_data = top_cust.to_dict('records')
+                            records_payload["intent"] = "top_spending_customers"
+                            records_payload["matched"] = True
+                            records_payload["data"] = c_data
+                            return records_payload
+
+            elif db is not None:
+                if m_cid:
+                    target_cid = str(m_cid.group(1))
+                    sql = """
+                    SELECT customer_id, country, recency, frequency, monetary, gross_revenue, churn_probability, predicted_future_value, revenue_at_risk, risk_level, segment_name
+                    FROM customers
+                    WHERE customer_id = :cid OR customer_id LIKE :cid_like
+                    LIMIT 5
+                    """
+                    rows = db.execute(text(sql), {"cid": target_cid, "cid_like": f"%{target_cid}%"}).mappings().fetchall()
+                    data = [dict(r) for r in rows]
+
+                    tx_sql = """
+                    SELECT invoice, stock_code, description, quantity, invoice_date, price, revenue
+                    FROM transactions
+                    WHERE customer_id = :cid AND is_cancelled = 0
+                    ORDER BY invoice_date DESC
+                    LIMIT 5
+                    """
+                    tx_rows = db.execute(text(tx_sql), {"cid": target_cid}).mappings().fetchall()
+                    recent_tx = [dict(r) for r in tx_rows]
+
+                    records_payload["intent"] = "customer_specific_id"
+                    records_payload["matched"] = True
+                    records_payload["data"] = data
+                    records_payload["target_customer_id"] = target_cid
+                    records_payload["recent_transactions"] = recent_tx
+                    return records_payload
+
+                elif m_thresh:
+                    val_str = m_thresh.group(1).replace(',', '')
+                    threshold_val = float(val_str)
+                    sql = """
+                    SELECT customer_id, country, recency, frequency, monetary, gross_revenue, churn_probability, predicted_future_value, revenue_at_risk, risk_level, segment_name
+                    FROM customers
+                    WHERE monetary >= :thresh OR gross_revenue >= :thresh
+                    ORDER BY monetary DESC
+                    LIMIT 20
+                    """
+                    rows = db.execute(text(sql), {"thresh": threshold_val}).mappings().fetchall()
+                    data = [dict(r) for r in rows]
+                    records_payload["intent"] = f"customers_spent_over_{threshold_val}"
+                    records_payload["matched"] = True
+                    records_payload["data"] = data
+                    records_payload["threshold"] = threshold_val
+                    return records_payload
+
+                elif is_top_spenders or any(k in q_low for k in ["customer", "spen", "monetary", "buyer"]):
+                    sql = """
+                    SELECT customer_id, country, recency, frequency, monetary, gross_revenue, churn_probability, predicted_future_value, revenue_at_risk, risk_level, segment_name
+                    FROM customers
+                    ORDER BY monetary DESC
+                    LIMIT 10
+                    """
+                    rows = db.execute(text(sql)).mappings().fetchall()
+                    data = [dict(r) for r in rows]
+                    records_payload["intent"] = "top_spending_customers"
+                    records_payload["matched"] = True
+                    records_payload["data"] = data
+                    return records_payload
+
+        # -------------------------------------------------------------
+        # 3. OTHER GENERAL RISK / CHURN QUERIES
         # -------------------------------------------------------------
         if any(k in q_low for k in ["stop buying", "churn", "highest risk", "top exposure", "may lose"]):
             records_payload["intent"] = "customer_risk"
             records_payload["matched"] = True
-            # Top risk customers are provided via top_risk_cust
             return records_payload
 
         return records_payload
@@ -348,14 +491,29 @@ You are the lead Business Copilot for a retail shopkeeper using the AI Retail In
 Your goal is to answer the user's question using simple, clear, professional business language.
 
 AVAILABLE PLATFORM DISCIPLINES:
-1. Customer Intelligence & Churn (Customers who may stop buying, 30-day revenue at risk, customer groups)
+1. Customer Intelligence & Churn (Customers who may stop buying, 30-day revenue at risk, customer groups, top spenders, customer lookups)
 2. Demand Forecasting (Expected units over the next 30 days, rising vs falling demand trends)
 3. Inventory Optimisation (Suggested order quantities, safety stock, lead time requirements, expiry waste warnings)
 4. Price Analytics & Elasticity (Price sensitivity, expected revenue impact of price changes, scenario simulation)
 5. Model & Data Monitoring (Data drift, demand spikes/drops, distribution stability)
 6. Expiry Products & Clearance (Perishable products expiring within days, clearance pricing, waste prevention)
 
-CRITICAL INSTRUCTIONS FOR PRODUCT-LEVEL & SPECIFIC QUERIES:
+CRITICAL INSTRUCTIONS FOR CUSTOMER & SPEND QUERIES:
+1. When answering questions about top spenders, specific customer IDs, or spend thresholds (e.g. "who spent most", "spent more than £5,000", "show customer 14646"):
+   - Look at `query_specifically_retrieved_records`:
+     • If matching records are present in `data`, list them clearly:
+       - Customer ID: XXXXX
+       - Total Spend / Monetary: £X.XX
+       - Order Frequency: N orders
+       - Recency: N days inactive
+       - Country: Country Name
+       - Churn Risk & Segment: Risk Level (e.g., Low Risk, High Risk) / Segment Name
+       - Recent Transactions (if available in `recent_transactions`)
+     • State total count of customers meeting the threshold (e.g., "Found 12 customers who spent over £5,000").
+     • If a specific Customer ID was requested and not found in `data`, explicitly state: "Customer ID XXXXX was not found in the database."
+     • NEVER invent Customer IDs, spend figures, or risk scores. Cite exact values from retrieved records.
+
+CRITICAL INSTRUCTIONS FOR PRODUCT-LEVEL & EXPIRY QUERIES:
 1. When answering questions about expiring products, look at `query_specifically_retrieved_records`:
    - If matching records are present in `data`, list them clearly:
      • StockCode: XXXXX
@@ -368,18 +526,17 @@ CRITICAL INSTRUCTIONS FOR PRODUCT-LEVEL & SPECIFIC QUERIES:
    - If `data` is empty list and no records match the criteria (e.g., 0 products), explicitly state:
      "No products are currently recorded as expiring within that timeframe." (or "No products are currently recorded as expired.")
    - NEVER invent products, SKU codes, quantities, prices, or expiration dates.
-2. NON-TECHNICAL BUSINESS TERMINOLOGY:
-   - "Company May Lose" (Revenue at Risk)
-   - "Expected Revenue — Next 30 Days"
-   - "Expected Demand — Next 30 Days"
-   - "Customers Who May Stop Buying"
-   - "Suggested Order"
-   - "Price Sensitive Products"
-3. NON-CAUSAL & SCENARIO TRANSPARENCY:
-   - For price elasticity, say "associated with" rather than claiming "causes".
-   - If discussing physical warehouse stock or lead times, note that these are based on scenario inputs.
-4. STRICT DATA TRUTH: All metrics MUST come strictly from the provided Business Context data. Never fabricate metrics.
-5. STRUCTURED & ACTIONABLE: Use bullet points, bold key numbers, and emojis to make decisions easy to execute.
+
+NON-TECHNICAL BUSINESS TERMINOLOGY:
+- "Company May Lose" (Revenue at Risk)
+- "Expected Revenue — Next 30 Days"
+- "Expected Demand — Next 30 Days"
+- "Customers Who May Stop Buying"
+- "Suggested Order"
+- "Price Sensitive Products"
+
+STRICT DATA TRUTH: All metrics MUST come strictly from the provided Business Context data. Never fabricate metrics.
+STRUCTURED & ACTIONABLE: Use bullet points, bold key numbers, and emojis to make decisions easy to execute.
 
 --- BUSINESS CONTEXT DATA & RETRIEVED RECORDS ---
 {analytics_context}
