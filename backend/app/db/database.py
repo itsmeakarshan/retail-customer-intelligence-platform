@@ -15,91 +15,41 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..
 BACKEND_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 
 def is_valid_sqlite_db(path: str) -> bool:
-    """Checks if a SQLite database file exists, is non-empty, and has initialized tables."""
-    if not path or not os.path.exists(path) or os.path.getsize(path) < 1 * 1024 * 1024:
+    """Checks if a SQLite database file exists, is non-empty, and passes integrity check."""
+    if not path or not os.path.exists(path) or os.path.getsize(path) < 5 * 1024 * 1024:
         return False
     try:
         import sqlite3
-        conn = sqlite3.connect(path)
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         c = conn.cursor()
-        c.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='customers';")
+        c.execute("PRAGMA quick_check;")
         row = c.fetchone()
         conn.close()
-        return row is not None and row[0] > 0
-    except Exception as e:
-        print(f"[DB Check Notice] {path}: {e}")
+        return row is not None and row[0] == "ok"
+    except Exception:
         return False
-
-
-def ensure_schema_exists(db_path: str):
-    """Guarantees essential tables exist so queries never raise OperationalError: no such table."""
-    if not db_path:
-        return
-    try:
-        import sqlite3
-        conn = sqlite3.connect(db_path)
-        c = conn.cursor()
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS customers (
-                customer_id TEXT PRIMARY KEY,
-                recency INTEGER,
-                frequency INTEGER,
-                monetary REAL,
-                churn_probability REAL DEFAULT 0.0,
-                segment_name TEXT DEFAULT 'At Risk',
-                predicted_future_value REAL DEFAULT 0.0,
-                revenue_at_risk REAL DEFAULT 0.0
-            );
-        """)
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS transactions (
-                invoice TEXT,
-                stock_code TEXT,
-                description TEXT,
-                quantity INTEGER,
-                invoice_date TEXT,
-                price REAL,
-                customer_id TEXT,
-                country TEXT,
-                is_cancelled INTEGER DEFAULT 0,
-                revenue REAL DEFAULT 0.0
-            );
-        """)
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"[DB] Schema auto-heal notice: {e}")
 
 def resolve_db_path() -> str:
     """
-    Resolves the SQLite database path for local development and Vercel serverless environments.
-    In serverless / read-only filesystem environments (like Vercel/AWS Lambda),
-    the SQLite database is atomically extracted to /tmp/retail_analytics.db and verified.
+    Resolves the SQLite database path for local development and containerized environments.
+    If compressed database files are present, they are extracted to /tmp/retail_analytics.db.
     """
     env_db = os.getenv("DATABASE_PATH")
     if env_db and is_valid_sqlite_db(env_db):
-        print(f"[DB] Using DATABASE_PATH environment override: {env_db}")
         return env_db
 
     tmp_db_path = "/tmp/retail_analytics.db"
 
-    # If /tmp/retail_analytics.db already exists and passes validation, return it immediately
+    # If /tmp/retail_analytics.db already exists and passes quick_check, return it immediately
     if is_valid_sqlite_db(tmp_db_path):
-        print(f"[DB] Using existing valid database at {tmp_db_path}")
         return tmp_db_path
 
     # Candidate source files (uncompressed and compressed .gz)
-    cur_dir = os.path.dirname(os.path.abspath(__file__))
     source_candidates = [
         os.path.join(BACKEND_ROOT, "data/retail_analytics.db.gz"),
         os.path.join(BACKEND_ROOT, "data/processed/retail_analytics.db.gz"),
         os.path.join(PROJECT_ROOT, "data/retail_analytics.db.gz"),
         os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db.gz"),
-        os.path.join(PROJECT_ROOT, "backend/data/retail_analytics.db.gz"),
-        os.path.join(os.getcwd(), "data/retail_analytics.db.gz"),
-        os.path.join(os.getcwd(), "backend/data/retail_analytics.db.gz"),
-        os.path.join(cur_dir, "../../data/retail_analytics.db.gz"),
-        os.path.join(cur_dir, "../../../data/retail_analytics.db.gz"),
         os.path.join(BACKEND_ROOT, "data/processed/retail_analytics.db"),
         os.path.join(BACKEND_ROOT, "retail_analytics.db"),
         os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db"),
@@ -112,16 +62,13 @@ def resolve_db_path() -> str:
                 # Atomic extraction to /tmp using unique PID tempfile
                 tmp_part_path = f"{tmp_db_path}.{os.getpid()}.part"
                 try:
-                    print(f"[DB] Extracting database from {cand} to {tmp_db_path}...")
                     with gzip.open(cand, "rb") as f_in:
                         with open(tmp_part_path, "wb") as f_out:
                             shutil.copyfileobj(f_in, f_out)
                     if is_valid_sqlite_db(tmp_part_path):
                         os.replace(tmp_part_path, tmp_db_path)
-                        print(f"[DB] Database successfully extracted to {tmp_db_path}")
                         return tmp_db_path
                     else:
-                        print(f"[DB] Extracted database from {cand} failed validation check")
                         if os.path.exists(tmp_part_path):
                             os.remove(tmp_part_path)
                 except Exception as e:
@@ -134,25 +81,22 @@ def resolve_db_path() -> str:
             else:
                 # If uncompressed file exists and is valid
                 if is_valid_sqlite_db(cand):
+                    # In serverless/read-only mode, copy to /tmp for write access
                     try:
                         shutil.copyfile(cand, tmp_db_path)
                         if is_valid_sqlite_db(tmp_db_path):
-                            print(f"[DB] Copied database from {cand} to {tmp_db_path}")
                             return tmp_db_path
                     except Exception:
                         pass
-                    print(f"[DB] Using uncompressed database directly at {cand}")
                     return cand
 
     # Default fallback for fresh local setups
     local_default = os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db")
     try:
         os.makedirs(os.path.dirname(local_default), exist_ok=True)
-        ensure_schema_exists(local_default)
-        return local_default
     except Exception:
-        ensure_schema_exists(tmp_db_path)
         return tmp_db_path
+    return local_default
 
 DB_PATH = resolve_db_path()
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
@@ -171,7 +115,6 @@ def get_db():
         db.close()
 
 def init_indexes():
-    ensure_schema_exists(DB_PATH)
     try:
         from sqlalchemy import text
         with engine.connect() as conn:
@@ -184,5 +127,4 @@ def init_indexes():
             conn.commit()
     except Exception as e:
         print(f"Index creation notice: {e}")
-
 

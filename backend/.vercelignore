@@ -1,9 +1,0 @@
-# Test files, caches, and raw processed data
-tests/
-__pycache__/
-*.py[cod]
-.pytest_cache/
-data/processed/
-*.db
-*.csv
-*.parquet

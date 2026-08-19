@@ -17,23 +17,17 @@ for p in [PROJECT_ROOT, BACKEND_ROOT]:
 # Load environment variables from root .env file
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 
-try:
-    from .api.endpoints import router as api_router
-    from .services.synthetic_generator import init_synthetic_tables
-    from .services.retail_intelligence_service import retail_intelligence_service
-    from .db.database import SessionLocal, init_indexes
-except (ImportError, ValueError):
-    try:
-        from app.api.endpoints import router as api_router
-        from app.services.synthetic_generator import init_synthetic_tables
-        from app.services.retail_intelligence_service import retail_intelligence_service
-        from app.db.database import SessionLocal, init_indexes
-    except (ImportError, ValueError):
-        from backend.app.api.endpoints import router as api_router
-        from backend.app.services.synthetic_generator import init_synthetic_tables
-        from backend.app.services.retail_intelligence_service import retail_intelligence_service
-        from backend.app.db.database import SessionLocal, init_indexes
+if not __package__:
+    if os.path.exists(os.path.join(PROJECT_ROOT, "backend")):
+        __package__ = "backend.app"
+    else:
+        __package__ = "app"
 
+
+from .api.endpoints import router as api_router
+from .services.synthetic_generator import init_synthetic_tables
+from .services.retail_intelligence_service import retail_intelligence_service
+from .db.database import SessionLocal, init_indexes
 
 app = FastAPI(
     title="Customer Intelligence & Revenue Risk Platform API",
@@ -53,16 +47,14 @@ def on_startup():
     except Exception as e:
         print(f"[Startup Notice] init_indexes: {e}")
 
-    # Skip heavy multi-second pre-warming loop on serverless Vercel runtime to prevent cold-start timeouts
-    if not os.getenv("VERCEL"):
+    try:
+        db = SessionLocal()
         try:
-            db = SessionLocal()
-            try:
-                retail_intelligence_service.warm_up_cache(db=db)
-            finally:
-                db.close()
-        except Exception as e:
-            print(f"[Startup Notice] warm_up_cache: {e}")
+            retail_intelligence_service.warm_up_cache(db=db)
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[Startup Notice] warm_up_cache: {e}")
 
 # Enable CORS for local React Frontend (Vite default port 5173 / 3000)
 app.add_middleware(
