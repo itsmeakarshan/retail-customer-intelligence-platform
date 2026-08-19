@@ -20,14 +20,16 @@ def is_valid_sqlite_db(path: str) -> bool:
         return False
     try:
         import sqlite3
-        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        conn = sqlite3.connect(path)
         c = conn.cursor()
         c.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='customers';")
         row = c.fetchone()
         conn.close()
         return row is not None and row[0] > 0
-    except Exception:
+    except Exception as e:
+        print(f"[DB Check Notice] {path}: {e}")
         return False
+
 
 def resolve_db_path() -> str:
     """
