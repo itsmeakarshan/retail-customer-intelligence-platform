@@ -31,6 +31,45 @@ def is_valid_sqlite_db(path: str) -> bool:
         return False
 
 
+def ensure_schema_exists(db_path: str):
+    """Guarantees essential tables exist so queries never raise OperationalError: no such table."""
+    if not db_path:
+        return
+    try:
+        import sqlite3
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS customers (
+                customer_id TEXT PRIMARY KEY,
+                recency INTEGER,
+                frequency INTEGER,
+                monetary REAL,
+                churn_probability REAL DEFAULT 0.0,
+                segment_name TEXT DEFAULT 'At Risk',
+                predicted_future_value REAL DEFAULT 0.0,
+                revenue_at_risk REAL DEFAULT 0.0
+            );
+        """)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS transactions (
+                invoice TEXT,
+                stock_code TEXT,
+                description TEXT,
+                quantity INTEGER,
+                invoice_date TEXT,
+                price REAL,
+                customer_id TEXT,
+                country TEXT,
+                is_cancelled INTEGER DEFAULT 0,
+                revenue REAL DEFAULT 0.0
+            );
+        """)
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[DB] Schema auto-heal notice: {e}")
+
 def resolve_db_path() -> str:
     """
     Resolves the SQLite database path for local development and Vercel serverless environments.
@@ -50,11 +89,17 @@ def resolve_db_path() -> str:
         return tmp_db_path
 
     # Candidate source files (uncompressed and compressed .gz)
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
     source_candidates = [
         os.path.join(BACKEND_ROOT, "data/retail_analytics.db.gz"),
         os.path.join(BACKEND_ROOT, "data/processed/retail_analytics.db.gz"),
         os.path.join(PROJECT_ROOT, "data/retail_analytics.db.gz"),
         os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db.gz"),
+        os.path.join(PROJECT_ROOT, "backend/data/retail_analytics.db.gz"),
+        os.path.join(os.getcwd(), "data/retail_analytics.db.gz"),
+        os.path.join(os.getcwd(), "backend/data/retail_analytics.db.gz"),
+        os.path.join(cur_dir, "../../data/retail_analytics.db.gz"),
+        os.path.join(cur_dir, "../../../data/retail_analytics.db.gz"),
         os.path.join(BACKEND_ROOT, "data/processed/retail_analytics.db"),
         os.path.join(BACKEND_ROOT, "retail_analytics.db"),
         os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db"),
@@ -103,11 +148,11 @@ def resolve_db_path() -> str:
     local_default = os.path.join(PROJECT_ROOT, "data/processed/retail_analytics.db")
     try:
         os.makedirs(os.path.dirname(local_default), exist_ok=True)
+        ensure_schema_exists(local_default)
+        return local_default
     except Exception:
-        print(f"[DB] Fallback to {tmp_db_path}")
+        ensure_schema_exists(tmp_db_path)
         return tmp_db_path
-    print(f"[DB] Fallback default database at {local_default}")
-    return local_default
 
 DB_PATH = resolve_db_path()
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
@@ -126,6 +171,7 @@ def get_db():
         db.close()
 
 def init_indexes():
+    ensure_schema_exists(DB_PATH)
     try:
         from sqlalchemy import text
         with engine.connect() as conn:
@@ -138,4 +184,5 @@ def init_indexes():
             conn.commit()
     except Exception as e:
         print(f"Index creation notice: {e}")
+
 
