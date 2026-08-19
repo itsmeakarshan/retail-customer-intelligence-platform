@@ -43,61 +43,61 @@ const FormattedAIResponse: React.FC<{ text: string; onNavigateTab?: (tab: string
   type Block =
     | { type: 'header'; text: string }
     | { type: 'paragraph'; text: string }
-    | { type: 'product_card'; items: string[] }
+    | { type: 'card'; items: string[] }
     | { type: 'bullet'; text: string };
 
   const blocks: Block[] = [];
-  let currentProductItems: string[] | null = null;
+  let currentCardItems: string[] | null = null;
 
-  const isPrimaryProductKey = (str: string) => {
-    const clean = str.replace(/^[-•*]\s*/, '').replace(/\*/g, '').trim();
-    return /^(StockCode|Stock Code|Product Code|Product ID|SKU|Item ID|Item Code)/i.test(clean);
+  const isPrimaryKey = (str: string) => {
+    const clean = str.replace(/^[-•*\d.]+\s*/, '').replace(/\*/g, '').trim();
+    return /^(Customer ID|Customer|CustomerID|Account ID|StockCode|Stock Code|Product Code|Product ID|SKU|Item ID|Item Code)/i.test(clean);
   };
 
-  const isProductAttrKey = (str: string) => {
-    const clean = str.replace(/^[-•*]\s*/, '').replace(/\*/g, '').trim();
-    return /^(Product Name|Product|Days Remaining|Units Available|Units|Current Price|Price|Discount|Revenue|Status|Clearance Price)/i.test(clean);
+  const isAttributeKey = (str: string) => {
+    const clean = str.replace(/^[-•*\d.]+\s*/, '').replace(/\*/g, '').trim();
+    return /^(Segment & Risk|Segment|Risk Level|Activity|Company May Lose|Contact Email|Email|Total Spend|Monetary|Order Frequency|Recency|Country|Recent Transactions|Product Name|Product|Days Remaining|Units Available|Units|Current Price|Price|Discount|Revenue|Status|Clearance Price|Recommended Action)/i.test(clean);
   };
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
     if (line.startsWith('#') || line.startsWith('###') || line.startsWith('🎯') || line.startsWith('✨') || line.startsWith('🚨') || line.startsWith('💥') || line.startsWith('📦')) {
-      if (currentProductItems) {
-        blocks.push({ type: 'product_card', items: currentProductItems });
-        currentProductItems = null;
+      if (currentCardItems && currentCardItems.length > 0) {
+        blocks.push({ type: 'card', items: currentCardItems });
+        currentCardItems = null;
       }
       blocks.push({ type: 'header', text: line.replace(/^[#\s]+/, '') });
       continue;
     }
 
-    if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*')) {
-      const cleanText = line.replace(/^[-•*]\s*/, '');
+    const isBullet = line.startsWith('-') || line.startsWith('•') || line.startsWith('*') || /^\d+\.\s/.test(line);
+    const cleanText = line.replace(/^[-•*\d.]+\s*/, '');
 
-      if (isPrimaryProductKey(line)) {
-        if (currentProductItems) {
-          blocks.push({ type: 'product_card', items: currentProductItems });
-        }
-        currentProductItems = [cleanText];
-      } else if (currentProductItems) {
-        currentProductItems.push(cleanText);
-      } else if (isProductAttrKey(line)) {
-        currentProductItems = [cleanText];
-      } else {
-        blocks.push({ type: 'bullet', text: cleanText });
+    if (isPrimaryKey(line)) {
+      if (currentCardItems && currentCardItems.length > 0) {
+        blocks.push({ type: 'card', items: currentCardItems });
       }
-      continue;
+      currentCardItems = [cleanText];
+    } else if (currentCardItems && (isBullet || isAttributeKey(line))) {
+      currentCardItems.push(cleanText);
+    } else if (isAttributeKey(line)) {
+      currentCardItems = [cleanText];
+    } else {
+      if (currentCardItems && currentCardItems.length > 0) {
+        blocks.push({ type: 'card', items: currentCardItems });
+        currentCardItems = null;
+      }
+      if (isBullet) {
+        blocks.push({ type: 'bullet', text: cleanText });
+      } else {
+        blocks.push({ type: 'paragraph', text: line });
+      }
     }
-
-    if (currentProductItems) {
-      blocks.push({ type: 'product_card', items: currentProductItems });
-      currentProductItems = null;
-    }
-    blocks.push({ type: 'paragraph', text: line });
   }
 
-  if (currentProductItems) {
-    blocks.push({ type: 'product_card', items: currentProductItems });
+  if (currentCardItems && currentCardItems.length > 0) {
+    blocks.push({ type: 'card', items: currentCardItems });
   }
 
   return (
@@ -152,7 +152,7 @@ const FormattedAIResponse: React.FC<{ text: string; onNavigateTab?: (tab: string
             );
           }
 
-          if (block.type === 'product_card') {
+          if (block.type === 'card') {
             return (
               <div
                 key={idx}
@@ -161,19 +161,35 @@ const FormattedAIResponse: React.FC<{ text: string; onNavigateTab?: (tab: string
                   border: '1px solid rgba(99, 102, 241, 0.35)',
                   borderRadius: '14px',
                   padding: '16px 20px',
-                  margin: '4px 0',
+                  margin: '6px 0',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '8px',
                   boxShadow: '0 4px 16px rgba(0, 0, 0, 0.25)'
                 }}
               >
-                {block.items.map((item, itemIdx) => (
-                  <div key={itemIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.96rem', color: '#E2E8F0' }}>
-                    <span style={{ color: '#818CF8', fontSize: '0.85rem', marginTop: '2px' }}>•</span>
-                    <span style={{ flex: 1, lineHeight: 1.5 }}>{renderFormattedText(item)}</span>
-                  </div>
-                ))}
+                {block.items.map((item, itemIdx) => {
+                  const isHeaderLine = itemIdx === 0;
+                  return (
+                    <div
+                      key={itemIdx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '10px',
+                        fontSize: isHeaderLine ? '1.02rem' : '0.95rem',
+                        color: isHeaderLine ? '#F8FAFC' : '#CBD5E1',
+                        fontWeight: isHeaderLine ? 700 : 400,
+                        paddingBottom: isHeaderLine && block.items.length > 1 ? '6px' : '0',
+                        borderBottom: isHeaderLine && block.items.length > 1 ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
+                        marginBottom: isHeaderLine && block.items.length > 1 ? '4px' : '0'
+                      }}
+                    >
+                      <span style={{ color: isHeaderLine ? '#818CF8' : '#94A3B8', fontSize: '0.85rem', marginTop: '3px' }}>•</span>
+                      <span style={{ flex: 1, lineHeight: 1.5 }}>{renderFormattedText(item)}</span>
+                    </div>
+                  );
+                })}
               </div>
             );
           }

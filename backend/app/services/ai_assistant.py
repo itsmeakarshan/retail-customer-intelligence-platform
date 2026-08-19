@@ -501,14 +501,12 @@ AVAILABLE PLATFORM DISCIPLINES:
 CRITICAL INSTRUCTIONS FOR CUSTOMER & SPEND QUERIES:
 1. When answering questions about top spenders, specific customer IDs, or spend thresholds (e.g. "who spent most", "spent more than £5,000", "show customer 14646"):
    - Look at `query_specifically_retrieved_records`:
-     • If matching records are present in `data`, list them clearly:
+     • If matching records are present in `data`, group all information for each customer together in a single structured block starting with `- Customer ID: XXXXX`:
        - Customer ID: XXXXX
-       - Total Spend / Monetary: £X.XX
-       - Order Frequency: N orders
-       - Recency: N days inactive
-       - Country: Country Name
-       - Churn Risk & Segment: Risk Level (e.g., Low Risk, High Risk) / Segment Name
-       - Recent Transactions (if available in `recent_transactions`)
+       - Segment & Risk: Segment Name / Risk Level (e.g., Low-Value / Dormant / High Risk)
+       - Activity: N days inactive (N orders, total historical spend of £X.XX)
+       - Company May Lose (Next 30 Days): £X.XX
+       - Contact Email: customer_XXXXX@example.com
      • State total count of customers meeting the threshold (e.g., "Found 12 customers who spent over £5,000").
      • If a specific Customer ID was requested and not found in `data`, explicitly state: "Customer ID XXXXX was not found in the database."
      • NEVER invent Customer IDs, spend figures, or risk scores. Cite exact values from retrieved records.
