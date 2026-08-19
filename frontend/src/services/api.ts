@@ -1,4 +1,7 @@
-export const API_BASE = (import.meta as any).env?.VITE_API_BASE || "http://localhost:8000/api";
+const envApiUrl = (import.meta as any).env?.VITE_API_URL || (import.meta as any).env?.VITE_API_BASE;
+const defaultApiUrl = (import.meta as any).env?.DEV ? "http://localhost:8000/api" : "/api";
+
+export const API_BASE = (envApiUrl || defaultApiUrl).replace(/\/+$/, '');
 
 export function formatSegmentName(name: string): string {
   if (!name) return name;
