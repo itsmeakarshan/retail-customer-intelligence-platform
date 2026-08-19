@@ -8,6 +8,7 @@ This module initializes SEPARATE tables for demonstration workflows:
 3. campaigns (campaign definitions)
 4. campaign_audit_log (delivery audit history)
 5. price_change_audit_log (clearance price audit history)
+6. inventory_recommendations_cache (precomputed inventory optimization cache)
 
 NO ML features, raw CSVs, or transaction dataset fields are modified.
 Synthetic expiry dates and customer email addresses are strictly for demonstration.
@@ -131,6 +132,41 @@ def _populate_synthetic_data(conn: sqlite3.Connection):
             new_clearance_price REAL NOT NULL,
             updated_at TEXT NOT NULL,
             action TEXT NOT NULL
+        )
+    """)
+
+    # 6. Create inventory_recommendations_cache table
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS inventory_recommendations_cache (
+            stock_code TEXT PRIMARY KEY,
+            description TEXT,
+            unit_price REAL,
+            expected_30d_demand REAL,
+            daily_mean_demand REAL,
+            daily_std_demand REAL,
+            lead_time_days INTEGER,
+            service_level REAL,
+            z_score REAL,
+            lead_time_demand REAL,
+            safety_stock INTEGER,
+            reorder_point INTEGER,
+            current_stock INTEGER,
+            suggested_order INTEGER,
+            status TEXT,
+            status_color TEXT,
+            status_emoji TEXT,
+            reason TEXT,
+            stock_value_scenario REAL,
+            order_cost_scenario REAL,
+            units_at_risk INTEGER,
+            expiry_days_remaining INTEGER,
+            is_high_risk INTEGER,
+            expiry_status TEXT,
+            estimated_waste_cost REAL,
+            recommendation TEXT,
+            data_disclosure TEXT,
+            is_eligible INTEGER DEFAULT 1,
+            exclusion_reason TEXT
         )
     """)
 
@@ -268,6 +304,9 @@ def _populate_synthetic_data(conn: sqlite3.Connection):
                     'expiry_status': row[3]
                 }
 
+        from ml.src.forecasting.inventory_optimizer import InventoryOptimizer
+        optimizer = InventoryOptimizer(default_lead_time_days=7, default_service_level=0.95)
+
         inv_rows = []
         for p in products:
             code, desc, avg_price, total_qty, orders_count = p
@@ -275,15 +314,10 @@ def _populate_synthetic_data(conn: sqlite3.Connection):
             unit_p = round(max(float(avg_price), 0.50), 2)
             
             exp_demand = round(max(5.0, (total_qty / 738.0) * 30.0), 1)
-            daily_mean = round(exp_demand / 30.0, 2)
-            daily_std = round(max(0.5, daily_mean * 0.4), 2)
+            daily_std = round(max(0.5, (exp_demand / 30.0) * 0.4), 2)
             
             lead_time = 7
             service_lvl = 0.95
-            z_score = 1.64
-            lead_demand = round(daily_mean * lead_time, 1)
-            safety_stock = int(round(z_score * daily_std * (lead_time ** 0.5)))
-            reorder_point = int(round(lead_demand + safety_stock))
             
             m = demo_meta.get(str(code), {})
             raw_stock = m.get('units_available')
@@ -292,52 +326,49 @@ def _populate_synthetic_data(conn: sqlite3.Connection):
             
             current_stock = raw_stock if raw_stock is not None and raw_stock > 0 else int(round(exp_demand * 0.8 + 10))
             
+            calc = optimizer.calculate_item_inventory(
+                stock_code=str(code),
+                description=str(clean_desc),
+                expected_30d_demand=exp_demand,
+                daily_demand_std=daily_std,
+                unit_price=unit_p,
+                current_stock=current_stock,
+                lead_time_days=lead_time,
+                service_level=service_lvl,
+                expiry_days_remaining=exp_days,
+                expiry_status=exp_status
+            )
+            
             if orders_count < 3:
                 status = 'Insufficient History'
                 status_color = 'gray'
                 status_emoji = '⚪'
                 reason = f'Insufficient transaction history ({orders_count} order(s)) for automated safety stock calculation'
                 suggested_order = 0
+                order_cost = 0.0
                 is_eligible = 0
                 exclusion_reason = f'Insufficient transaction history ({orders_count} order(s))'
-            elif current_stock < reorder_point:
-                status = 'Replenishment Needed'
-                status_color = 'red'
-                status_emoji = '🔴'
-                reason = f'Current stock ({current_stock}) is below reorder point ({reorder_point})'
-                suggested_order = max(10, reorder_point * 2 - current_stock)
-                is_eligible = 1
-                exclusion_reason = None
-            elif current_stock > (exp_demand * 2.5):
-                status = 'Excess Stock'
-                status_color = 'amber'
-                status_emoji = '🟡'
-                reason = f'Current stock ({current_stock}) exceeds 2.5x 30-day forecast'
-                suggested_order = 0
-                is_eligible = 1
-                exclusion_reason = None
             else:
-                status = 'Healthy'
-                status_color = 'green'
-                status_emoji = '🟢'
-                reason = 'Inventory level is within optimal bounds'
-                suggested_order = 0
+                status = calc['status']
+                status_color = calc['status_color']
+                status_emoji = calc['status_emoji']
+                reason = calc['reason']
+                suggested_order = calc['suggested_order']
+                order_cost = calc['order_cost_scenario']
                 is_eligible = 1
                 exclusion_reason = None
-                
-            stock_val = round(current_stock * unit_p, 2)
-            order_cost = round(suggested_order * unit_p, 2)
             
-            is_expiring = exp_status in ['Expired', 'Expiring Soon'] or (exp_days is not None and exp_days <= 30)
-            units_at_risk = int(round(max(0, current_stock - (exp_demand * (min(30, max(1, exp_days or 30)) / 30.0))))) if is_expiring else 0
-            waste_cost = round(units_at_risk * unit_p, 2) if is_expiring else 0.0
-            rec_text = 'Apply markdown clearance' if is_expiring else 'Normal Replenishment'
+            exp_alert = calc.get('expiry_risk_alert')
+            units_at_risk = exp_alert['units_at_risk'] if exp_alert else 0
+            waste_cost = exp_alert['estimated_waste_cost'] if exp_alert else 0.0
+            is_high_risk = 1 if (exp_alert and exp_alert.get('is_high_risk')) else 0
+            rec_text = exp_alert['recommendation'] if exp_alert else ('Normal Replenishment' if status != 'Insufficient History' else 'Insufficient History')
             
             inv_rows.append((
-                str(code), str(clean_desc), unit_p, exp_demand, daily_mean, daily_std,
-                lead_time, service_lvl, z_score, lead_demand, safety_stock, reorder_point,
+                str(code), str(clean_desc), unit_p, exp_demand, calc['daily_mean_demand'], daily_std,
+                lead_time, service_lvl, calc['z_score'], calc['lead_time_demand'], calc['safety_stock'], calc['reorder_point'],
                 current_stock, suggested_order, status, status_color, status_emoji, reason,
-                stock_val, order_cost, units_at_risk, exp_days, 1 if is_expiring else 0,
+                calc['stock_value_scenario'], order_cost, units_at_risk, exp_days, is_high_risk,
                 exp_status, waste_cost, rec_text,
                 'Calculated via LightGBM & Empirical Demand Variance',
                 is_eligible, exclusion_reason

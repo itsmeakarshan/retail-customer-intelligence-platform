@@ -287,6 +287,7 @@ class EmailPreviewRequest(BaseModel):
     discount_percent: float
     subject: str
     message: str
+    recipient_email: Optional[str] = None
 
 class EmailPreviewResponse(BaseModel):
     campaign_name: str
@@ -313,6 +314,7 @@ class EmailTestRequest(BaseModel):
     selected_customer_ids: Optional[List[str]] = None
     discount_percent: Optional[float] = 15.0
     campaign_id: Optional[int] = None
+    recipient_email: Optional[str] = None
 
 class EmailTestResponse(BaseModel):
     success: bool

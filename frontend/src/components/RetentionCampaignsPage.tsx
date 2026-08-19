@@ -43,6 +43,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
   void targetCustomers;
   void expiringProducts;
   const [emailStatus, setEmailStatus] = useState<EmailStatusResponse | null>(null);
+  const [emailRecipient, setEmailRecipient] = useState<string>('akarshanrasyal4@gmail.com');
   const [loading, setLoading] = useState(true);
 
   // Customer ID Selection Table State
@@ -88,6 +89,9 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
       setExpiringProducts(prodData);
       setTargetCustomers(custData);
       setEmailStatus(statusData);
+      if (statusData?.demo_recipient) {
+        setEmailRecipient(statusData.demo_recipient);
+      }
     } catch (err) {
       console.error("Failed to load retention campaign data:", err);
     } finally {
@@ -168,12 +172,13 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
         target_product_code: selectedProductCode || undefined,
         discount_percent: discountPercent,
         subject: subject,
-        message: message
+        message: message,
+        recipient_email: emailRecipient
       });
       setPreviewData(prev);
       setTestResult(null);
       setIsPreviewOpen(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to generate email preview:", err);
     }
   };
@@ -188,17 +193,8 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
         subject: subject,
         message: message,
         selected_customer_ids: selectedCustomerIds.length > 0 ? selectedCustomerIds : undefined,
-        discount_percent: discountPercent
-      });
-
-      await createCampaign({
-        campaign_name: campaignName,
-        target_group: targetGroup,
-        target_product_code: selectedProductCode || undefined,
-        offer_type: offerType,
         discount_percent: discountPercent,
-        subject: subject,
-        message: message
+        recipient_email: emailRecipient
       });
 
       setTestResult({
@@ -206,10 +202,24 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
         message: res.message,
         message_id: res.message_id
       });
-    } catch (err) {
+
+      try {
+        await createCampaign({
+          campaign_name: campaignName,
+          target_group: targetGroup,
+          target_product_code: selectedProductCode || undefined,
+          offer_type: offerType,
+          discount_percent: discountPercent,
+          subject: subject,
+          message: message
+        });
+      } catch (campErr) {
+        console.warn("Notice: Campaign logged with error:", campErr);
+      }
+    } catch (err: any) {
       setTestResult({
         status: 'Failed',
-        message: '⚠️ Connection error communicating with backend Brevo service.'
+        message: err.message || '⚠️ Connection error communicating with backend Brevo service.'
       });
     } finally {
       setSendingTest(false);
@@ -665,7 +675,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
           <Gift color="#10B981" size={24} /> Create Personalized Retention Offer
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600, marginBottom: '6px' }}>
               Campaign Name
@@ -686,6 +696,19 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
+              style={{ width: '100%', padding: '10px 14px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#F8FAFC' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', color: '#94A3B8', fontWeight: 600, marginBottom: '6px' }}>
+              Recipient Email Address
+            </label>
+            <input
+              type="email"
+              placeholder="e.g. akarshanrasyal4@gmail.com"
+              value={emailRecipient}
+              onChange={(e) => setEmailRecipient(e.target.value)}
               style={{ width: '100%', padding: '10px 14px', background: 'rgba(15, 23, 42, 0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#F8FAFC' }}
             />
           </div>
@@ -769,7 +792,7 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
             {emailStatus?.configured ? (
               <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '10px', fontSize: '0.82rem', color: '#34D399', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <ShieldCheck size={18} />
-                <span><strong>BREVO READY:</strong> Real test email will deliver ONLY to shopkeeper recipient: <strong>{previewData.demo_recipient}</strong>.</span>
+                <span><strong>BREVO READY:</strong> Live test email will be sent via Brevo to: <strong>{emailRecipient}</strong>.</span>
               </div>
             ) : (
               <div style={{ padding: '12px', background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '10px', fontSize: '0.82rem', color: '#FDE047', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -777,6 +800,20 @@ export const RetentionCampaignsPage: React.FC<{ onOpenCopilot?: () => void; acti
                 <span><strong>🧪 DEMO MODE:</strong> Email service not configured yet. Add <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 4px' }}>BREVO_API_KEY</code> to <code style={{ background: 'rgba(0,0,0,0.3)', padding: '2px 4px' }}>.env</code> to enable live delivery.</span>
               </div>
             )}
+
+            {/* Editable recipient field inside modal */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', color: '#94A3B8', fontWeight: 600, marginBottom: '4px' }}>
+                Send Test Email To:
+              </label>
+              <input
+                type="email"
+                value={emailRecipient}
+                onChange={(e) => setEmailRecipient(e.target.value)}
+                placeholder="Enter recipient email..."
+                style={{ width: '100%', padding: '10px 14px', background: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '8px', color: '#F8FAFC', fontSize: '0.88rem' }}
+              />
+            </div>
 
             {/* HTML Email Mock Box */}
             <div dangerouslySetInnerHTML={{ __html: previewData.formatted_html_preview }} style={{ marginBottom: '20px' }} />

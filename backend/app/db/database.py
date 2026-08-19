@@ -120,10 +120,16 @@ def init_indexes():
         with engine.connect() as conn:
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_trans_stock ON transactions(stock_code);"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_trans_cust ON transactions(customer_id);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_trans_stock_perf ON transactions(stock_code, is_cancelled, quantity, revenue);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_trans_stock_cancel ON transactions(stock_code, is_cancelled);"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_cust_churn ON customers(churn_probability);"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_cust_seg ON customers(segment_name);"))
-            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pdemo_expiry ON product_demo_metadata(expiry_status);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_cust_rev_risk ON customers(revenue_at_risk DESC);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pdemo_expiry ON product_demo_metadata(expiry_status, expiry_days_remaining);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pdemo_days ON product_demo_metadata(expiry_days_remaining);"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS idx_pdemo_stock ON product_demo_metadata(stock_code);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_inv_cache_stock ON inventory_recommendations_cache(stock_code);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_inv_cache_eligible ON inventory_recommendations_cache(is_eligible);"))
             conn.commit()
     except Exception as e:
         print(f"Index creation notice: {e}")

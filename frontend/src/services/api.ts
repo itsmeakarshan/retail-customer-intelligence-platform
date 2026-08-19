@@ -549,12 +549,17 @@ export async function previewEmail(data: {
   discount_percent: number;
   subject: string;
   message: string;
+  recipient_email?: string;
 }): Promise<EmailPreviewResponse> {
   const res = await fetch(`${API_BASE}/campaigns/preview-email`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   });
+  if (!res.ok) {
+    const errJson = await res.json().catch(() => ({}));
+    throw new Error(errJson.detail || "Failed to generate email preview.");
+  }
   return res.json();
 }
 
@@ -566,12 +571,17 @@ export async function sendTestEmail(data: {
   selected_customer_ids?: string[];
   discount_percent?: number;
   campaign_id?: number;
+  recipient_email?: string;
 }): Promise<EmailTestResponse> {
   const res = await fetch(`${API_BASE}/campaigns/send-test-email`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data)
   });
+  if (!res.ok) {
+    const errJson = await res.json().catch(() => ({}));
+    throw new Error(errJson.detail || "Failed to send retention test email.");
+  }
   return res.json();
 }
 

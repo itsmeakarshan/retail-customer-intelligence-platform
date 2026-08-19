@@ -312,14 +312,16 @@ class EmailService:
         message_text: str,
         selected_customer_ids: List[str] = None,
         discount_percent: float = 15.0,
-        campaign_id: Optional[int] = None
+        campaign_id: Optional[int] = None,
+        recipient_email: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Sends a real test transactional email via Brevo REST API v3.
-        STRICT CONTROL: Delivery recipient is ALWAYS DEMO_EMAIL_ADDRESS.
+        Delivers to the specified recipient_email or DEMO_EMAIL_ADDRESS.
         """
         api_key = self.get_api_key()
         demo_recipient = self.get_demo_recipient()
+        target_recipient = (recipient_email.strip() if recipient_email and recipient_email.strip() else demo_recipient)
         now_iso = datetime.now().isoformat()
         customer_count = len(selected_customer_ids) if selected_customer_ids else 1
         primary_customer_id = selected_customer_ids[0] if selected_customer_ids else "13085"
@@ -334,7 +336,7 @@ class EmailService:
                 subject=subject,
                 message_text=message_text,
                 delivery_mode="DEMO EMAIL",
-                recipient=demo_recipient,
+                recipient=target_recipient,
                 provider_message_id=None,
                 status_label="Email Service Not Configured"
             )
@@ -343,7 +345,7 @@ class EmailService:
                 "audit_id": audit_id,
                 "demo_mode": True,
                 "provider_configured": False,
-                "recipient": demo_recipient,
+                "recipient": target_recipient,
                 "delivery_mode": "DEMO EMAIL",
                 "status": "Email Service Not Configured",
                 "timestamp": now_iso,
@@ -393,7 +395,7 @@ class EmailService:
 
             <div class="footer">
               <p>Sent via Brevo API in Demo Mode for <strong>Customer #{primary_customer_id}</strong>.</p>
-              <p>Real test recipient: <strong>{demo_recipient}</strong></p>
+              <p>Delivered to: <strong>{target_recipient}</strong></p>
             </div>
           </div>
         </body>
@@ -415,7 +417,7 @@ class EmailService:
             },
             "to": [
                 {
-                    "email": demo_recipient,
+                    "email": target_recipient,
                     "name": "Shopkeeper Demo"
                 }
             ],
@@ -440,7 +442,7 @@ class EmailService:
                     subject=subject,
                     message_text=message_text,
                     delivery_mode="BREVO API",
-                    recipient=demo_recipient,
+                    recipient=target_recipient,
                     provider_message_id=msg_id,
                     status_label=status_label
                 )
@@ -450,12 +452,12 @@ class EmailService:
                     "audit_id": audit_id,
                     "demo_mode": True,
                     "provider_configured": True,
-                    "recipient": demo_recipient,
+                    "recipient": target_recipient,
                     "delivery_mode": "BREVO API",
                     "status": status_label,
                     "timestamp": now_iso,
                     "message_id": msg_id,
-                    "message": f"Real test email accepted by Brevo API for delivery to {demo_recipient} (Message ID: {msg_id})."
+                    "message": f"Real test email accepted by Brevo API for delivery to {target_recipient} (Message ID: {msg_id})."
                 }
             else:
                 err_detail = "Unknown Brevo API error"
@@ -471,7 +473,7 @@ class EmailService:
                     subject=subject,
                     message_text=message_text,
                     delivery_mode="BREVO API",
-                    recipient=demo_recipient,
+                    recipient=target_recipient,
                     provider_message_id=None,
                     status_label=f"Failed: {err_detail[:80]}"
                 )
@@ -481,7 +483,7 @@ class EmailService:
                     "audit_id": audit_id,
                     "demo_mode": True,
                     "provider_configured": True,
-                    "recipient": demo_recipient,
+                    "recipient": target_recipient,
                     "delivery_mode": "BREVO API",
                     "status": "Failed",
                     "timestamp": now_iso,
@@ -498,7 +500,7 @@ class EmailService:
                 subject=subject,
                 message_text=message_text,
                 delivery_mode="BREVO API",
-                recipient=demo_recipient,
+                recipient=target_recipient,
                 provider_message_id=None,
                 status_label=f"Failed: {str(e)[:80]}"
             )
@@ -507,7 +509,7 @@ class EmailService:
                 "audit_id": audit_id,
                 "demo_mode": True,
                 "provider_configured": True,
-                "recipient": demo_recipient,
+                "recipient": target_recipient,
                 "delivery_mode": "BREVO API",
                 "status": "Failed",
                 "timestamp": now_iso,

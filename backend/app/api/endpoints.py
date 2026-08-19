@@ -1234,26 +1234,30 @@ def get_expiry_products(
     where_str = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
 
     sql = f"""
+    WITH filtered_products AS (
+        SELECT * FROM product_demo_metadata p
+        {where_str}
+        ORDER BY p.expiry_days_remaining ASC
+        LIMIT :limit
+    )
     SELECT 
-        p.stock_code,
-        p.description,
-        p.synthetic_expiry_date,
-        p.expiry_days_remaining,
-        p.expiry_status,
-        p.units_available,
-        p.unit_price,
-        p.stock_value,
-        p.recommended_discount,
-        p.clearance_discount,
-        p.clearance_price,
+        fp.stock_code,
+        fp.description,
+        fp.synthetic_expiry_date,
+        fp.expiry_days_remaining,
+        fp.expiry_status,
+        fp.units_available,
+        fp.unit_price,
+        fp.stock_value,
+        fp.recommended_discount,
+        fp.clearance_discount,
+        fp.clearance_price,
         COALESCE(SUM(t.quantity), 0) as historical_units_sold,
         COALESCE(SUM(t.revenue), 0) as historical_revenue
-    FROM product_demo_metadata p
-    LEFT JOIN transactions t ON p.stock_code = t.stock_code AND t.is_cancelled = 0
-    {where_str}
-    GROUP BY p.stock_code
-    ORDER BY p.expiry_days_remaining ASC
-    LIMIT :limit
+    FROM filtered_products fp
+    LEFT JOIN transactions t ON fp.stock_code = t.stock_code AND t.is_cancelled = 0
+    GROUP BY fp.stock_code
+    ORDER BY fp.expiry_days_remaining ASC
     """
     rows = db.execute(text(sql), params).mappings().fetchall()
     
@@ -1474,6 +1478,11 @@ def get_expiry_customers(stock_code: Optional[str] = None, db: Session = Depends
         params["stock_code"] = stock_code
 
     sql = f"""
+    WITH expiring_prods AS (
+        SELECT stock_code, description, expiry_days_remaining 
+        FROM product_demo_metadata 
+        WHERE expiry_status = 'Expiring Soon' {where_extra}
+    )
     SELECT DISTINCT
         c.customer_id,
         c.country,
@@ -1482,15 +1491,14 @@ def get_expiry_customers(stock_code: Optional[str] = None, db: Session = Depends
         c.churn_probability,
         c.predicted_future_value,
         c.revenue_at_risk,
-        p.stock_code as purchased_product_code,
-        p.description as purchased_product_desc,
-        p.expiry_days_remaining,
+        ep.stock_code as purchased_product_code,
+        ep.description as purchased_product_desc,
+        ep.expiry_days_remaining,
         m.demo_email
-    FROM transactions t
-    JOIN product_demo_metadata p ON t.stock_code = p.stock_code
+    FROM expiring_prods ep
+    JOIN transactions t ON ep.stock_code = t.stock_code
     JOIN customers c ON t.customer_id = c.customer_id
     JOIN customer_demo_metadata m ON c.customer_id = m.customer_id
-    WHERE p.expiry_status = 'Expiring Soon' {where_extra}
     ORDER BY c.revenue_at_risk DESC
     LIMIT 50
     """
@@ -1631,7 +1639,7 @@ def preview_email(req: schemas.EmailPreviewRequest, db: Session = Depends(get_db
         total_val = 1500.0
         rev_risk = 450.0
 
-    demo_recipient = email_service.get_demo_recipient()
+    demo_recipient = (req.recipient_email.strip() if req.recipient_email and req.recipient_email.strip() else email_service.get_demo_recipient())
     primary_cid = selected_ids[0] if selected_ids else "13085"
 
     html_preview = f"""
@@ -1684,7 +1692,8 @@ def send_test_email(req: schemas.EmailTestRequest):
         message_text=req.message,
         selected_customer_ids=req.selected_customer_ids,
         discount_percent=req.discount_percent or 15.0,
-        campaign_id=req.campaign_id
+        campaign_id=req.campaign_id,
+        recipient_email=req.recipient_email
     )
     return res
 

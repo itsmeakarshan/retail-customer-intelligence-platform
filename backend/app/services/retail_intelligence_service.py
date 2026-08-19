@@ -349,15 +349,6 @@ class RetailIntelligenceService:
         }
 
     # =========================================================================
-    # INVENTORY OPTIMISATION METHODS
-    # =========================================================================
-    def get_inventory_summary(self, db: Optional[Session] = None, session_dir: Optional[str] = None) -> Dict[str, Any]:
-        session_key = session_dir or "default"
-        if session_key in self._cache_inventory_summary:
-            return self._cache_inventory_summary[session_key]
-
-        items = self.get_inventory_recommendations(db=db, session_dir=session_dir)
-    # =========================================================================
     # INVENTORY OPTIMISATION & EXPIRY REPLENISHMENT METHODS
     # =========================================================================
     def get_inventory_summary(self, db: Optional[Session] = None, session_dir: Optional[str] = None) -> Dict[str, Any]:
@@ -722,19 +713,33 @@ class RetailIntelligenceService:
         db: Optional[Session] = None,
         session_dir: Optional[str] = None
     ) -> Dict[str, Any]:
-        demand_detail = self.get_product_demand_detail(stock_code, db=db, session_dir=session_dir)
-        if not demand_detail:
-            exp_demand = 100.0
-            daily_std = 5.0
-            desc = f"Product {stock_code}"
-            unit_price = 2.0
+        # Check if product is in cached inventory recommendations for catalog parity
+        cached_rec = None
+        inv_items = self.get_inventory_recommendations(db=db, session_dir=session_dir, limit=0, include_excluded=True)
+        for it in inv_items:
+            if str(it.get('stock_code')) == str(stock_code):
+                cached_rec = it
+                break
+
+        if cached_rec:
+            exp_demand = cached_rec['expected_30d_demand']
+            daily_std = cached_rec['daily_std_demand']
+            desc = cached_rec['description']
+            unit_price = cached_rec['unit_price']
         else:
-            exp_demand = demand_detail['expected_30d_demand']
-            daily_std = demand_detail.get('daily_demand_std')
-            if daily_std is None or daily_std <= 0:
-                daily_std = max(0.5, (demand_detail['upper_30d_estimate'] - exp_demand) / (1.44 * np.sqrt(30)))
-            desc = demand_detail['description']
-            unit_price = demand_detail['unit_price']
+            demand_detail = self.get_product_demand_detail(stock_code, db=db, session_dir=session_dir)
+            if not demand_detail:
+                exp_demand = 100.0
+                daily_std = 5.0
+                desc = f"Product {stock_code}"
+                unit_price = 2.0
+            else:
+                exp_demand = demand_detail['expected_30d_demand']
+                daily_std = demand_detail.get('daily_demand_std')
+                if daily_std is None or daily_std <= 0:
+                    daily_std = max(0.5, (demand_detail['upper_30d_estimate'] - exp_demand) / (1.44 * np.sqrt(30)))
+                desc = demand_detail['description']
+                unit_price = demand_detail['unit_price']
 
         u_cost = unit_cost if unit_cost is not None and unit_cost > 0 else round(unit_price * 0.60, 2)
 
@@ -1806,6 +1811,7 @@ class RetailIntelligenceService:
         """Pre-populates in-memory summaries on application startup."""
         try:
             logger.info("Pre-warming RetailIntelligenceService caches...")
+            self.get_demand_summary(db=db)
             self.get_inventory_summary(db=db)
             self.get_pricing_summary(db=db)
             self.get_monitoring_summary(db=db)

@@ -138,13 +138,18 @@ def populate_inventory_cache(conn: sqlite3.Connection):
             is_eligible = 1
             exclusion_reason = None
             
-        stock_val = round(current_stock * unit_p, 2)
-        order_cost = round(suggested_order * unit_p, 2)
-        
         is_expiring = exp_status in ['Expired', 'Expiring Soon'] or (exp_days is not None and exp_days <= 30)
         units_at_risk = int(round(max(0, current_stock - (exp_demand * (min(30, max(1, exp_days or 30)) / 30.0))))) if is_expiring else 0
         waste_cost = round(units_at_risk * unit_p, 2) if is_expiring else 0.0
         rec_text = 'Apply markdown clearance' if is_expiring else 'Normal Replenishment'
+        if is_expiring and units_at_risk > 0:
+            suggested_order = 0
+            order_cost = 0.0
+            reason = f"Expiring inventory alert: Halting replenishment to prevent expiry waste ({units_at_risk} units at risk)."
+        else:
+            order_cost = round(suggested_order * unit_p, 2)
+            
+        stock_val = round(current_stock * unit_p, 2)
         
         rows.append((
             str(code), str(clean_desc), unit_p, exp_demand, daily_mean, daily_std,
