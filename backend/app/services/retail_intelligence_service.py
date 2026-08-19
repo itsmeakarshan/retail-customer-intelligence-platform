@@ -465,8 +465,7 @@ class RetailIntelligenceService:
 
             # If cache is empty (or custom session), compute directly
             if not cached_items:
-                limit_count = 200 if session_key == "default" else 5000
-                demand_prods = self.get_product_demand_list(db=db, session_dir=session_dir, limit=limit_count)
+                demand_prods = self.get_product_demand_list(db=db, session_dir=session_dir, limit=5000)
                 df_meta = self._get_product_metadata_df(db=db, session_dir=session_dir)
                 meta_dict = {}
                 if not df_meta.empty:

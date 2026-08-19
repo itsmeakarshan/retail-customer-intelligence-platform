@@ -134,41 +134,6 @@ def _populate_synthetic_data(conn: sqlite3.Connection):
         )
     """)
 
-    # 6. Create inventory_recommendations_cache table
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS inventory_recommendations_cache (
-            stock_code TEXT PRIMARY KEY,
-            description TEXT,
-            unit_price REAL,
-            expected_30d_demand REAL,
-            daily_mean_demand REAL,
-            daily_std_demand REAL,
-            lead_time_days INTEGER,
-            service_level REAL,
-            z_score REAL,
-            lead_time_demand REAL,
-            safety_stock INTEGER,
-            reorder_point INTEGER,
-            current_stock INTEGER,
-            suggested_order INTEGER,
-            status TEXT,
-            status_color TEXT,
-            status_emoji TEXT,
-            reason TEXT,
-            stock_value_scenario REAL,
-            order_cost_scenario REAL,
-            units_at_risk INTEGER,
-            expiry_days_remaining INTEGER,
-            is_high_risk INTEGER,
-            expiry_status TEXT,
-            estimated_waste_cost REAL,
-            recommendation TEXT,
-            data_disclosure TEXT,
-            is_eligible INTEGER DEFAULT 1,
-            exclusion_reason TEXT
-        )
-    """)
-
     # Populate customer_demo_metadata if empty
     c.execute("SELECT COUNT(*) FROM customer_demo_metadata")
     if c.fetchone()[0] == 0:

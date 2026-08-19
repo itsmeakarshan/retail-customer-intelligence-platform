@@ -37,12 +37,6 @@ backend/retail.db
 data/uploads/*
 !data/uploads/.gitkeep
 
-# Raw and intermediate dataset files (kept out of Git to keep repo lightweight)
-data/raw/*.csv
-data/processed/*.csv
-data/processed/*.parquet
-data/processed/temporal_splits/
-
 # macOS & OS clutter
 .DS_Store
 .DS_Store?
